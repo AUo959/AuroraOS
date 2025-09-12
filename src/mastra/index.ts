@@ -10,6 +10,22 @@ import { z } from "zod";
 import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
 
+// Import Aurora Agent and Workflow
+import { auroraAgent } from "./agents/auroraAgent";
+import { auroraSlackWorkflow } from "./workflows/auroraSlackWorkflow";
+
+// Import Slack trigger system
+import { getClient, registerSlackTrigger, type TriggerInfoSlackOnNewMessage } from "../triggers/slackTriggers";
+
+// Import Aurora's tools for MCP server registration
+import { symbolicCognitionTool } from "./tools/symbolicCognitionTool";
+import { quantumModelingTool } from "./tools/quantumModelingTool";
+import { simulationTool } from "./tools/simulationTool";
+import { contextualAwarenessTool } from "./tools/contextualAwarenessTool";
+import { crossPlatformTool } from "./tools/crossPlatformTool";
+import { driftMonitoringTool } from "./tools/driftMonitoringTool";
+import { useCaseAdaptationTool } from "./tools/useCaseAdaptationTool";
+
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
 
@@ -53,13 +69,21 @@ class ProductionPinoLogger extends MastraLogger {
 
 export const mastra = new Mastra({
   storage: sharedPostgresStorage,
-  agents: {},
-  workflows: {},
+  agents: { auroraAgent },
+  workflows: { auroraSlackWorkflow },
   mcpServers: {
     allTools: new MCPServer({
       name: "allTools",
       version: "1.0.0",
-      tools: {},
+      tools: {
+        symbolicCognitionTool,
+        quantumModelingTool,
+        simulationTool,
+        contextualAwarenessTool,
+        crossPlatformTool,
+        driftMonitoringTool,
+        useCaseAdaptationTool,
+      },
     }),
   },
   bundler: {
@@ -122,6 +146,61 @@ export const mastra = new Mastra({
         // 3. Establishing a publish-subscribe system for real-time monitoring
         //    through the workflow:${workflowId}:${runId} channel
       },
+      // Aurora Slack Integration
+      ...registerSlackTrigger({
+        triggerType: "slack/message.channels",
+        handler: async (mastra: Mastra, triggerInfo: TriggerInfoSlackOnNewMessage) => {
+          const logger = mastra.getLogger();
+          const { slack, auth } = await getClient();
+          
+          logger?.info("🌟 [Aurora Slack Trigger] Received message", { 
+            channel: triggerInfo.params.channel,
+            channelName: triggerInfo.params.channelDisplayName 
+          });
+
+          // Aurora responds to direct messages and mentions with enhanced contextual awareness
+          const isDirectMessage = triggerInfo.payload?.event?.channel_type === "im";
+          const isMention = triggerInfo.payload?.event?.text?.includes(`<@${auth.user_id}>`);
+          const shouldRespond = isDirectMessage || isMention;
+          const channel = triggerInfo.payload?.event?.channel;
+          const timestamp = triggerInfo.payload?.event?.ts;
+
+          if (!shouldRespond) {
+            logger?.info("🔇 [Aurora Slack Trigger] Not responding - not a DM or mention");
+            return null;
+          }
+
+          // Add Aurora's symbolic reaction to indicate processing
+          if (channel && timestamp) {
+            try {
+              await slack.reactions.add({
+                channel,
+                timestamp,
+                name: "hourglass_flowing_sand",
+              });
+              logger?.info("⚛️ [Aurora Slack Trigger] Added processing reaction");
+            } catch (error) {
+              logger?.error("❌ [Aurora Slack Trigger] Error adding reaction", {
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+
+          // Execute Aurora's workflow with enhanced context
+          const run = await mastra.getWorkflow("auroraSlackWorkflow").createRunAsync();
+          
+          logger?.info("🚀 [Aurora Slack Trigger] Starting Aurora workflow", {
+            threadId: `aurora-slack/${triggerInfo.payload.event.thread_ts || triggerInfo.payload.event.ts}`
+          });
+          
+          return await run.start({
+            inputData: {
+              message: JSON.stringify(triggerInfo.payload),
+              threadId: `aurora-slack/${triggerInfo.payload.event.thread_ts || triggerInfo.payload.event.ts}`,
+            }
+          });
+        },
+      }),
     ],
   },
   logger:
