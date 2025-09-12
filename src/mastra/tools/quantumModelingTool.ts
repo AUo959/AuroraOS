@@ -30,8 +30,8 @@ export const quantumModelingTool = createTool({
       "quantum_search",
       "parallel_universe_modeling"
     ]).describe("Type of quantum modeling to apply"),
-    quantumParameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional().default({}).describe("Additional parameters for the quantum model"),
-    dimensions: z.number().min(2).max(11).optional().default(4).describe("Number of dimensions to model (2-11)"),
+    quantumParameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}).describe("Additional parameters for the quantum model"),
+    dimensions: z.number().min(2).max(11).default(4).describe("Number of dimensions to model (2-11)"),
   }),
   outputSchema: z.object({
     modelResults: z.string(),
