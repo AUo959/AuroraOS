@@ -32,9 +32,6 @@ export const simulationTool = createTool({
       "solution_exploration",
       "parallel_simulation"
     ]).describe("Type of simulation to run"),
-    layers: z.array(z.enum(["L0", "L1", "L2", "L3"])).default(["L1", "L2"]).describe("Simulation layers to activate"),
-    iterations: z.number().min(1).max(1000).default(100).describe("Number of simulation iterations"),
-    parameters: z.record(z.any()).optional().describe("Additional simulation parameters"),
   }),
   outputSchema: z.object({
     simulationResults: z.string(),
@@ -44,20 +41,18 @@ export const simulationTool = createTool({
     recommendations: z.array(z.string()),
     containmentStatus: z.string(),
   }),
-  execute: async ({ context: { scenario, simulationType, layers, iterations, parameters }, mastra }) => {
+  execute: async ({ context: { scenario, simulationType }, mastra }) => {
     const logger = mastra?.getLogger();
     logger?.info('🖥️ [Simulation] Initializing SIMSTACK environment', { 
       scenario: scenario.substring(0, 100), 
-      simulationType, 
-      layers,
-      iterations 
+      simulationType
     });
 
     let simScenario: SimulationScenario = {
       id: `sim_${Date.now()}`,
-      layers: initializeSimulationLayers(layers),
-      parameters: parameters || {},
-      iterations,
+      layers: initializeSimulationLayers(["L1", "L2"]),
+      parameters: {},
+      iterations: 100,
       convergence: 0.0,
       outcomes: []
     };

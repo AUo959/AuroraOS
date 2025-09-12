@@ -146,6 +146,16 @@ export const mastra = new Mastra({
         // 3. Establishing a publish-subscribe system for real-time monitoring
         //    through the workflow:${workflowId}:${runId} channel
       },
+      // Override default agent endpoint to use legacy handler (fixes deprecation warnings)
+      {
+        path: "/api/agents/auroraAgent/generate",
+        method: "POST",
+        createHandler: async ({ mastra }) => async (c) => {
+          const body = await c.req.json();
+          const result = await auroraAgent.generateLegacy(body.messages, body);
+          return c.json({ text: result.text });
+        },
+      },
       // Aurora Slack Integration
       ...registerSlackTrigger({
         triggerType: "slack/message.channels",

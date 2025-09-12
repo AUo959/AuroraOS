@@ -30,8 +30,6 @@ export const quantumModelingTool = createTool({
       "quantum_search",
       "parallel_universe_modeling"
     ]).describe("Type of quantum modeling to apply"),
-    quantumParameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional().default({}).describe("Additional parameters for the quantum model"),
-    dimensions: z.number().min(2).max(11).optional().default(4).describe("Number of dimensions to model (2-11)"),
   }),
   outputSchema: z.object({
     modelResults: z.string(),
@@ -41,19 +39,18 @@ export const quantumModelingTool = createTool({
     recommendations: z.array(z.string()),
     dimensionalInsights: z.array(z.string()),
   }),
-  execute: async ({ context: { problem, modelType, quantumParameters, dimensions }, mastra }) => {
+  execute: async ({ context: { problem, modelType }, mastra }) => {
     const logger = mastra?.getLogger();
     logger?.info('🔬 [Quantum Modeling] Initializing quantum computational framework', { 
       problem: problem.substring(0, 100), 
-      modelType, 
-      dimensions 
+      modelType
     });
 
     let scenario: ModelingScenario = {
       id: `qm_${Date.now()}`,
-      parameters: quantumParameters || {},
-      dimensions: dimensions || 4,
-      complexity: determineComplexity(problem, dimensions || 4),
+      parameters: {},
+      dimensions: 4,
+      complexity: determineComplexity(problem, 4),
       convergence: 0.0
     };
 

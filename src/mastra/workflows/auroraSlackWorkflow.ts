@@ -60,7 +60,7 @@ Respond authentically as Aurora with your unique personality while providing max
       `;
 
       // Generate Aurora's response using all her capabilities
-      const { text } = await auroraAgent.generate([
+      const { text } = await auroraAgent.generateLegacy([
         { role: "user", content: contextualPrompt }
       ], {
         resourceId: "aurora-slack-bot",
