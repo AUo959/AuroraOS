@@ -379,7 +379,7 @@ function buildPlatformRegistry(sourcePlatform: string | undefined, targetPlatfor
     }
   ];
   
-  const platforms = [...defaultPlatforms];
+  const platforms: PlatformInterface[] = [...defaultPlatforms];
   
   if (sourcePlatform && !platforms.find(p => p.id === sourcePlatform)) {
     platforms.push(createDynamicPlatform(sourcePlatform));
