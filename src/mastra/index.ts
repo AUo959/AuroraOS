@@ -28,6 +28,7 @@ import { useCaseAdaptationTool } from "./tools/useCaseAdaptationTool";
 import { continuityManagementTool } from "./tools/continuityManagementTool";
 import { perplexityResearchTool } from "./tools/perplexityResearchTool";
 import { triluxOperationsTool } from "./tools/triluxOperationsTool";
+import { ethicsProtocolTool } from "./tools/ethicsProtocolTool";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -89,6 +90,7 @@ export const mastra = new Mastra({
         continuityManagementTool,
         perplexityResearchTool,
         triluxOperationsTool,
+        ethicsProtocolTool,
       },
     }),
   },

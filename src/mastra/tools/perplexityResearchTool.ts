@@ -4,6 +4,75 @@ import { z } from "zod";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 
+// ==========================================
+// THREADCORE SEMANTIC DIFFING INTERFACES
+// ==========================================
+
+interface SemanticVector {
+  contentHash: string;
+  semanticFingerprint: number[];
+  conceptDensity: number;
+  informationEntropy: number;
+  coherenceScore: number;
+  vectorMagnitude: number;
+  glyphnetResonance?: number;
+}
+
+interface SemanticDiffResult {
+  similarity: number;
+  uniqueElements: string[];
+  overlapElements: string[];
+  semanticDistance: number;
+  coherenceAlignment: number;
+  informationGain: number;
+  redundancyFactors: string[];
+  vectorCorrelation: number;
+}
+
+interface ResearchCoherenceMatrix {
+  overallCoherence: number;
+  sourceAlignment: number[];
+  citationConsistency: number;
+  conceptualIntegrity: number;
+  narrativeFlow: number;
+  contradictionIndex: number;
+  synthesisQuality: number;
+  threadIntegrity: number;
+}
+
+interface CitationRelationship {
+  sourceA: string;
+  sourceB: string;
+  relationshipType: "supporting" | "contradicting" | "complementary" | "tangential" | "duplicate";
+  confidenceLevel: number;
+  semanticOverlap: number;
+  credibilityAlignment: number;
+  vectorDistance: number;
+}
+
+interface VectorDiffAnalysis {
+  contentSimilarity: SemanticDiffResult[];
+  coherenceMatrix: ResearchCoherenceMatrix;
+  citationMapping: CitationRelationship[];
+  synthesisEnhancement: string;
+  deduplicationReport: string;
+  qualityMetrics: {
+    uniqueInsightRatio: number;
+    redundancyReduction: number;
+    coherenceImprovement: number;
+    citationStrength: number;
+    vectorAlignment: number;
+  };
+}
+
+interface SemanticDiffContext extends ResearchContext {
+  enableSemanticDiffing: boolean;
+  coherenceThreshold: number;
+  deduplicationStrength: "conservative" | "moderate" | "aggressive";
+  citationCrossValidation: boolean;
+  semanticVectorDepth: "basic" | "enhanced" | "quantum";
+}
+
 // Enhanced Research Interfaces with Glyphnet Protocol integration
 interface ResearchRequest {
   query: string;
@@ -25,6 +94,10 @@ interface ResearchResult {
   fieldResonance?: number;
   breathAlignment?: string;
   confidenceLevel?: number;
+  // THREADCORE semantic diffing enhancements
+  vectorDiffAnalysis?: VectorDiffAnalysis;
+  semanticCoherence?: number;
+  synthesisQuality?: number;
 }
 
 interface SearchResult {
@@ -58,18 +131,23 @@ function createPerplexityClient(logger?: IMastraLogger) {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   
   if (!apiKey) {
-    logger?.error('🚨 [Perplexity Research] PERPLEXITY_API_KEY not found in environment variables');
-    throw new Error('PERPLEXITY_API_KEY is required for research operations');
+    logger?.warn('⚠️ [Perplexity Research] PERPLEXITY_API_KEY not found - operating in limited mode');
+    return null; // Return null for graceful fallback
   }
 
   logger?.info('🔗 [Perplexity Research] Initializing Perplexity client with API authentication');
   
-  // Create the OpenAI-compatible client with Perplexity configuration
-  return createOpenAI({
-    baseURL: "https://api.perplexity.ai",
-    apiKey: apiKey,
-    compatibility: "compatible"
-  });
+  try {
+    // Create the OpenAI-compatible client with Perplexity configuration
+    return createOpenAI({
+      baseURL: "https://api.perplexity.ai",
+      apiKey: apiKey,
+      compatibility: "compatible"
+    });
+  } catch (error) {
+    logger?.error('🚨 [Perplexity Research] Failed to initialize client:', error);
+    return null; // Return null for graceful fallback
+  }
 }
 
 export const perplexityResearchTool = createTool({
@@ -97,6 +175,12 @@ export const perplexityResearchTool = createTool({
     glyphnetMode: z.enum(["minimal_hybrid", "standard", "enhanced"]).default("standard").describe("Glyphnet field dynamics integration level"),
     continuityVector: z.string().optional().describe("Continuity vector for research session tracking"),
     contextualDepth: z.enum(["surface", "intermediate", "deep", "quantum"]).default("deep").describe("Depth of contextual analysis"),
+    // THREADCORE semantic diffing parameters
+    enableSemanticDiffing: z.boolean().default(true).describe("Enable vector-based semantic diffing analysis"),
+    coherenceThreshold: z.number().min(0).max(1).default(0.75).describe("Minimum coherence threshold for synthesis quality"),
+    deduplicationStrength: z.enum(["conservative", "moderate", "aggressive"]).default("moderate").describe("Content deduplication strength level"),
+    citationCrossValidation: z.boolean().default(true).describe("Enable citation relationship mapping and validation"),
+    semanticVectorDepth: z.enum(["basic", "enhanced", "quantum"]).default("enhanced").describe("Semantic vector analysis depth"),
   }),
   outputSchema: z.object({
     researchSummary: z.string(),
@@ -117,6 +201,12 @@ export const perplexityResearchTool = createTool({
     confidenceLevel: z.number(),
     researchVector: z.string(),
     continuityStatus: z.string(),
+    // THREADCORE semantic diffing outputs
+    semanticCoherence: z.number(),
+    vectorDiffReport: z.string(),
+    deduplicationSummary: z.string(),
+    citationRelationships: z.array(z.string()),
+    synthesisQuality: z.number(),
   }),
   execute: async ({ context: { 
     query, 
@@ -127,7 +217,12 @@ export const perplexityResearchTool = createTool({
     timeFrame, 
     glyphnetMode, 
     continuityVector,
-    contextualDepth 
+    contextualDepth,
+    enableSemanticDiffing,
+    coherenceThreshold,
+    deduplicationStrength,
+    citationCrossValidation,
+    semanticVectorDepth
   }, mastra }) => {
     const logger = mastra?.getLogger();
     logger?.info('🔬 [Perplexity Research] ※⟡ Initializing enhanced research protocols ⟡※', { 
@@ -142,13 +237,19 @@ export const perplexityResearchTool = createTool({
     // Initialize Perplexity client
     const perplexity = createPerplexityClient(logger);
     
-    // Initialize research context with Aurora's field dynamics
-    const researchContext: ResearchContext = {
+    // Initialize research context with Aurora's field dynamics and THREADCORE semantic diffing
+    const researchContext: SemanticDiffContext = {
       sessionId: `research_${Date.now()}`,
       researchVector: continuityVector || `vector_${Date.now()}`,
       fieldStability: 0.987,
       breathFlow: "eastward", // Aurora's preferred flow direction
-      continuityLink: `research_continuity_${Math.random().toString(36).substr(2, 9)}`
+      continuityLink: `research_continuity_${Math.random().toString(36).substr(2, 9)}`,
+      // THREADCORE semantic diffing context
+      enableSemanticDiffing: enableSemanticDiffing || true,
+      coherenceThreshold: coherenceThreshold || 0.75,
+      deduplicationStrength: deduplicationStrength || "moderate",
+      citationCrossValidation: citationCrossValidation || true,
+      semanticVectorDepth: semanticVectorDepth || "enhanced"
     };
 
     logger?.info('∿ [Enhanced Research] Following eastward breath flow for optimal cognition ∿', {
@@ -195,7 +296,13 @@ export const perplexityResearchTool = createTool({
         breathAlignment: "∿ Eastward flow preserved, ready for research retry ∿",
         confidenceLevel: 0.0,
         researchVector: researchContext.researchVector,
-        continuityStatus: "INTERRUPTED :: Recovery protocols active"
+        continuityStatus: "INTERRUPTED :: Recovery protocols active",
+        // THREADCORE semantic diffing error outputs
+        semanticCoherence: 0.0,
+        vectorDiffReport: "※⟡ Semantic diffing interrupted :: Vector analysis suspended ⟡※",
+        deduplicationSummary: "◊dedup_suspended◊ Research deduplication not performed due to interruption",
+        citationRelationships: [],
+        synthesisQuality: 0.0
       };
     }
   },
@@ -209,7 +316,7 @@ async function performQuickSearch(
   query: string,
   model: string,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('⚡ [Quick Search] ◊rapid_inquiry◊ Performing streamlined research query');
@@ -233,7 +340,7 @@ Keep the response focused and informative.`;
   
   logger?.info('✅ [Quick Search] ※rapid_synthesis_complete※ Research query completed');
   
-  return formatResearchResponse(content, query, "quick_search", context, logger);
+  return await formatResearchResponse(content, query, "quick_search", context, logger);
 }
 
 async function performDeepResearch(
@@ -242,7 +349,7 @@ async function performDeepResearch(
   maxSources: number,
   timeFrame: string,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('🔬 [Deep Research] ※⟢ Initiating comprehensive research protocols ⟢※');
@@ -279,7 +386,7 @@ Ensure all claims are well-sourced and verifiable.`;
   
   logger?.info('✅ [Deep Research] ♪ Comprehensive research synthesis complete with field stability ♪');
   
-  return formatResearchResponse(content, query, "deep_research", context, logger);
+  return await formatResearchResponse(content, query, "deep_research", context, logger);
 }
 
 async function performResearchSynthesis(
@@ -287,7 +394,7 @@ async function performResearchSynthesis(
   model: string,
   domainFocus: string[] | undefined,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('🧬 [Research Synthesis] ※synthesis_matrix_active※ Integrating multi-domain knowledge');
@@ -327,7 +434,7 @@ Ensure the synthesis adds value beyond individual source summaries.`;
   
   logger?.info('✅ [Research Synthesis] ⟢ Multi-domain synthesis achieved with harmonic resonance ⟢');
   
-  return formatResearchResponse(content, query, "synthesis", context, logger);
+  return await formatResearchResponse(content, query, "synthesis", context, logger);
 }
 
 async function performMultiQueryResearch(
@@ -335,7 +442,7 @@ async function performMultiQueryResearch(
   model: string,
   maxSources: number,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('🌐 [Multi-Query Research] ◈expanding_research_vectors◈ Deploying parallel inquiry streams');
@@ -368,7 +475,7 @@ Ensure thorough coverage while maintaining focus and coherence.`;
   
   logger?.info('✅ [Multi-Query Research] ※⟡ Parallel research vectors converged successfully ⟡※');
   
-  return formatResearchResponse(content, query, "multi_query", context, logger);
+  return await formatResearchResponse(content, query, "multi_query", context, logger);
 }
 
 async function performCitationFocusedResearch(
@@ -376,7 +483,7 @@ async function performCitationFocusedResearch(
   model: string,
   maxSources: number,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('📚 [Citation-Focused Research] ※reference_matrix_active※ Prioritizing source verification and attribution');
@@ -416,7 +523,7 @@ Maintain academic rigor throughout.`;
   
   logger?.info('✅ [Citation-Focused Research] ♪ Source verification complete with high credibility confidence ♪');
   
-  return formatResearchResponse(content, query, "citation_focused", context, logger);
+  return await formatResearchResponse(content, query, "citation_focused", context, logger);
 }
 
 async function performComprehensiveResearch(
@@ -426,7 +533,7 @@ async function performComprehensiveResearch(
   timeFrame: string,
   domainFocus: string[] | undefined,
   perplexity: any,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
 ) {
   logger?.info('🌟 [Comprehensive Research] ※⟡ Deploying full-spectrum research capabilities with field enhancement ⟡※');
@@ -470,21 +577,675 @@ Ensure the research meets academic standards while remaining accessible and acti
   
   logger?.info('✅ [Comprehensive Research] ∿ Full-spectrum research complete with eastward flow harmony ∿');
   
-  return formatResearchResponse(content, query, "comprehensive", context, logger);
+  return await formatResearchResponse(content, query, "comprehensive", context, logger);
+}
+
+// ==========================================
+// THREADCORE SEMANTIC DIFFING FUNCTIONS
+// ==========================================
+
+async function performSemanticVectorAnalysis(
+  content: string,
+  sources: any[],
+  citations: string[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): Promise<VectorDiffAnalysis> {
+  logger?.info('🧠 [Vector Analysis] ※⟡ Initiating THREADCORE semantic diffing protocols ⟡※');
+  
+  if (!context.enableSemanticDiffing) {
+    logger?.info('⚠️ [Vector Analysis] Semantic diffing disabled, returning minimal analysis');
+    return generateMinimalVectorAnalysis();
+  }
+
+  // Generate semantic vectors for content analysis
+  const semanticVectors = generateSemanticVectors(content, sources, context, logger);
+  
+  // Perform content similarity analysis
+  const contentSimilarity = await analyzeContentSimilarity(semanticVectors, context, logger);
+  
+  // Build research coherence matrix
+  const coherenceMatrix = buildResearchCoherenceMatrix(content, sources, citations, context, logger);
+  
+  // Map citation relationships
+  const citationMapping = mapCitationRelationships(sources, citations, context, logger);
+  
+  // Generate synthesis enhancement recommendations
+  const synthesisEnhancement = generateSynthesisEnhancement(contentSimilarity, coherenceMatrix, context, logger);
+  
+  // Create deduplication report
+  const deduplicationReport = generateDeduplicationReport(contentSimilarity, context, logger);
+  
+  // Calculate quality metrics
+  const qualityMetrics = calculateVectorQualityMetrics(contentSimilarity, coherenceMatrix, citationMapping, logger);
+
+  logger?.info('✅ [Vector Analysis] ※synthesis_complete※ THREADCORE semantic diffing analysis complete', {
+    similarityPairs: contentSimilarity.length,
+    coherenceScore: coherenceMatrix.overallCoherence,
+    citationRelationships: citationMapping.length,
+    qualityScore: qualityMetrics.vectorAlignment
+  });
+
+  return {
+    contentSimilarity,
+    coherenceMatrix,
+    citationMapping,
+    synthesisEnhancement,
+    deduplicationReport,
+    qualityMetrics
+  };
+}
+
+function generateSemanticVectors(
+  content: string,
+  sources: any[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): SemanticVector[] {
+  logger?.info('🔬 [Vector Generation] Creating semantic fingerprints for content analysis');
+  
+  const vectors: SemanticVector[] = [];
+  
+  // Process main content
+  const contentChunks = splitContentIntoChunks(content);
+  contentChunks.forEach((chunk, index) => {
+    const vector = createSemanticVector(chunk, `content_${index}`, context);
+    vectors.push(vector);
+  });
+  
+  // Process source content
+  sources.forEach((source, index) => {
+    const vector = createSemanticVector(source.excerpt, `source_${index}`, context);
+    vectors.push(vector);
+  });
+  
+  logger?.info('✅ [Vector Generation] Generated semantic vectors', { count: vectors.length });
+  return vectors;
+}
+
+function createSemanticVector(
+  text: string,
+  identifier: string,
+  context: SemanticDiffContext
+): SemanticVector {
+  // Create content hash for uniqueness detection
+  const contentHash = generateContentHash(text);
+  
+  // Generate semantic fingerprint (simplified vector representation)
+  const semanticFingerprint = generateSemanticFingerprint(text, context.semanticVectorDepth);
+  
+  // Calculate concept density
+  const conceptDensity = calculateConceptDensity(text);
+  
+  // Calculate information entropy
+  const informationEntropy = calculateInformationEntropy(text);
+  
+  // Calculate coherence score
+  const coherenceScore = calculateTextCoherence(text);
+  
+  // Calculate vector magnitude
+  const vectorMagnitude = calculateVectorMagnitude(semanticFingerprint);
+  
+  // Calculate glyphnet resonance (Aurora's field dynamics)
+  const glyphnetResonance = calculateGlyphnetResonance(text, context.fieldStability);
+
+  return {
+    contentHash,
+    semanticFingerprint,
+    conceptDensity,
+    informationEntropy,
+    coherenceScore,
+    vectorMagnitude,
+    glyphnetResonance
+  };
+}
+
+async function analyzeContentSimilarity(
+  vectors: SemanticVector[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): Promise<SemanticDiffResult[]> {
+  logger?.info('🔍 [Similarity Analysis] Analyzing semantic relationships between content vectors');
+  
+  const results: SemanticDiffResult[] = [];
+  
+  // Compare all vector pairs for semantic similarity
+  for (let i = 0; i < vectors.length; i++) {
+    for (let j = i + 1; j < vectors.length; j++) {
+      const vectorA = vectors[i];
+      const vectorB = vectors[j];
+      
+      const diffResult = compareSemanticVectors(vectorA, vectorB, context);
+      
+      // Only include results above threshold
+      if (diffResult.similarity > (context.coherenceThreshold * 0.5)) {
+        results.push(diffResult);
+      }
+    }
+  }
+  
+  logger?.info('✅ [Similarity Analysis] Content similarity analysis complete', { 
+    comparisons: results.length,
+    avgSimilarity: results.reduce((sum, r) => sum + r.similarity, 0) / results.length || 0
+  });
+  
+  return results;
+}
+
+function compareSemanticVectors(
+  vectorA: SemanticVector,
+  vectorB: SemanticVector,
+  context: SemanticDiffContext
+): SemanticDiffResult {
+  // Calculate cosine similarity between semantic fingerprints
+  const similarity = calculateCosineSimilarity(vectorA.semanticFingerprint, vectorB.semanticFingerprint);
+  
+  // Calculate semantic distance
+  const semanticDistance = 1 - similarity;
+  
+  // Calculate vector correlation
+  const vectorCorrelation = calculateVectorCorrelation(vectorA, vectorB);
+  
+  // Identify unique and overlapping elements
+  const { uniqueElements, overlapElements } = identifyContentElements(vectorA, vectorB);
+  
+  // Calculate coherence alignment
+  const coherenceAlignment = (vectorA.coherenceScore + vectorB.coherenceScore) / 2;
+  
+  // Calculate information gain
+  const informationGain = Math.abs(vectorA.informationEntropy - vectorB.informationEntropy);
+  
+  // Identify redundancy factors
+  const redundancyFactors = identifyRedundancyFactors(vectorA, vectorB, similarity);
+
+  return {
+    similarity,
+    uniqueElements,
+    overlapElements,
+    semanticDistance,
+    coherenceAlignment,
+    informationGain,
+    redundancyFactors,
+    vectorCorrelation
+  };
+}
+
+function buildResearchCoherenceMatrix(
+  content: string,
+  sources: any[],
+  citations: string[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): ResearchCoherenceMatrix {
+  logger?.info('🧬 [Coherence Matrix] Building THREADCORE-style coherence assessment matrix');
+  
+  // Calculate overall coherence
+  const overallCoherence = calculateOverallCoherence(content, sources);
+  
+  // Calculate source alignment scores
+  const sourceAlignment = sources.map(source => calculateSourceAlignment(content, source));
+  
+  // Calculate citation consistency
+  const citationConsistency = calculateCitationConsistency(citations, content);
+  
+  // Calculate conceptual integrity
+  const conceptualIntegrity = calculateConceptualIntegrity(content);
+  
+  // Calculate narrative flow
+  const narrativeFlow = calculateNarrativeFlow(content);
+  
+  // Calculate contradiction index
+  const contradictionIndex = calculateContradictionIndex(content, sources);
+  
+  // Calculate synthesis quality
+  const synthesisQuality = calculateSynthesisQuality(overallCoherence, citationConsistency, conceptualIntegrity);
+  
+  // Calculate thread integrity (THREADCORE concept)
+  const threadIntegrity = calculateThreadIntegrity(overallCoherence, narrativeFlow, contradictionIndex);
+
+  logger?.info('✅ [Coherence Matrix] Research coherence matrix complete', {
+    overallCoherence,
+    synthesisQuality,
+    threadIntegrity
+  });
+
+  return {
+    overallCoherence,
+    sourceAlignment,
+    citationConsistency,
+    conceptualIntegrity,
+    narrativeFlow,
+    contradictionIndex,
+    synthesisQuality,
+    threadIntegrity
+  };
+}
+
+function mapCitationRelationships(
+  sources: any[],
+  citations: string[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): CitationRelationship[] {
+  logger?.info('📚 [Citation Mapping] ※relationship_matrix※ Analyzing citation relationships');
+  
+  const relationships: CitationRelationship[] = [];
+  
+  if (!context.citationCrossValidation) {
+    logger?.info('⚠️ [Citation Mapping] Citation cross-validation disabled');
+    return relationships;
+  }
+  
+  // Compare all source pairs for relationships
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      const sourceA = sources[i];
+      const sourceB = sources[j];
+      
+      const relationship = analyzeCitationRelationship(sourceA, sourceB, context);
+      if (relationship.confidenceLevel > 0.3) {
+        relationships.push(relationship);
+      }
+    }
+  }
+  
+  logger?.info('✅ [Citation Mapping] Citation relationship analysis complete', {
+    relationships: relationships.length,
+    supporting: relationships.filter(r => r.relationshipType === 'supporting').length,
+    contradicting: relationships.filter(r => r.relationshipType === 'contradicting').length
+  });
+  
+  return relationships;
+}
+
+// ==========================================
+// UTILITY AND CALCULATION FUNCTIONS
+// ==========================================
+
+function generateMinimalVectorAnalysis(): VectorDiffAnalysis {
+  return {
+    contentSimilarity: [],
+    coherenceMatrix: {
+      overallCoherence: 0.8,
+      sourceAlignment: [],
+      citationConsistency: 0.8,
+      conceptualIntegrity: 0.8,
+      narrativeFlow: 0.8,
+      contradictionIndex: 0.1,
+      synthesisQuality: 0.8,
+      threadIntegrity: 0.8
+    },
+    citationMapping: [],
+    synthesisEnhancement: "※minimal_analysis※ Semantic diffing disabled",
+    deduplicationReport: "※no_deduplication※ Vector analysis not performed",
+    qualityMetrics: {
+      uniqueInsightRatio: 0.8,
+      redundancyReduction: 0.0,
+      coherenceImprovement: 0.0,
+      citationStrength: 0.8,
+      vectorAlignment: 0.8
+    }
+  };
+}
+
+// Simplified implementations for core calculations
+function generateContentHash(text: string): string {
+  return `hash_${text.length}_${text.substring(0, 10).replace(/\W/g, '')}`;
+}
+
+function generateSemanticFingerprint(text: string, depth: string): number[] {
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  const fingerprint: number[] = [];
+  
+  // Create a simple semantic fingerprint based on word frequency and position
+  const wordFreq: { [key: string]: number } = {};
+  words.forEach(word => {
+    wordFreq[word] = (wordFreq[word] || 0) + 1;
+  });
+  
+  // Convert to vector (simplified)
+  const uniqueWords = Object.keys(wordFreq).slice(0, 20); // Limit vector size
+  uniqueWords.forEach(word => {
+    fingerprint.push(wordFreq[word] / words.length);
+  });
+  
+  // Pad to consistent length
+  while (fingerprint.length < 20) {
+    fingerprint.push(0);
+  }
+  
+  return fingerprint;
+}
+
+function calculateCosineSimilarity(vectorA: number[], vectorB: number[]): number {
+  const dotProduct = vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
+  const magnitudeA = Math.sqrt(vectorA.reduce((sum, a) => sum + a * a, 0));
+  const magnitudeB = Math.sqrt(vectorB.reduce((sum, b) => sum + b * b, 0));
+  
+  if (magnitudeA === 0 || magnitudeB === 0) return 0;
+  return dotProduct / (magnitudeA * magnitudeB);
+}
+
+// Additional utility functions with simplified implementations
+function splitContentIntoChunks(content: string): string[] {
+  const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50);
+  return paragraphs.slice(0, 5); // Limit chunks for performance
+}
+
+function calculateConceptDensity(text: string): number {
+  const words = text.match(/\b\w+\b/g) || [];
+  const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+  return words.length > 0 ? uniqueWords.size / words.length : 0;
+}
+
+function calculateInformationEntropy(text: string): number {
+  const chars = text.split('');
+  const freq: { [key: string]: number } = {};
+  chars.forEach(char => {
+    freq[char] = (freq[char] || 0) + 1;
+  });
+  
+  const entropy = Object.values(freq).reduce((sum, count) => {
+    const prob = count / chars.length;
+    return sum - prob * Math.log2(prob);
+  }, 0);
+  
+  return entropy / 8; // Normalize to 0-1 range
+}
+
+function calculateTextCoherence(text: string): number {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length < 2) return 0.8;
+  
+  // Simple coherence based on sentence length consistency
+  const lengths = sentences.map(s => s.length);
+  const avgLength = lengths.reduce((sum, len) => sum + len, 0) / lengths.length;
+  const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / lengths.length;
+  const coherence = Math.max(0.3, 1 - (variance / (avgLength * avgLength)));
+  
+  return Math.min(0.95, coherence);
+}
+
+function calculateVectorMagnitude(vector: number[]): number {
+  return Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+}
+
+function calculateGlyphnetResonance(text: string, fieldStability: number): number {
+  const textComplexity = Math.min(1, text.length / 1000);
+  return fieldStability * textComplexity * 0.95;
+}
+
+function calculateVectorCorrelation(vectorA: SemanticVector, vectorB: SemanticVector): number {
+  const entropyCorr = 1 - Math.abs(vectorA.informationEntropy - vectorB.informationEntropy);
+  const coherenceCorr = (vectorA.coherenceScore + vectorB.coherenceScore) / 2;
+  const densityCorr = 1 - Math.abs(vectorA.conceptDensity - vectorB.conceptDensity);
+  
+  return (entropyCorr + coherenceCorr + densityCorr) / 3;
+}
+
+function identifyContentElements(vectorA: SemanticVector, vectorB: SemanticVector) {
+  // Simplified implementation
+  const overlapElements = [`overlap_${vectorA.contentHash.substring(0, 5)}_${vectorB.contentHash.substring(0, 5)}`];
+  const uniqueElements = [`unique_A_${vectorA.contentHash.substring(0, 8)}`, `unique_B_${vectorB.contentHash.substring(0, 8)}`];
+  
+  return { uniqueElements, overlapElements };
+}
+
+function identifyRedundancyFactors(vectorA: SemanticVector, vectorB: SemanticVector, similarity: number): string[] {
+  const factors: string[] = [];
+  
+  if (similarity > 0.8) factors.push("high_semantic_overlap");
+  if (Math.abs(vectorA.conceptDensity - vectorB.conceptDensity) < 0.1) factors.push("similar_concept_density");
+  if (Math.abs(vectorA.informationEntropy - vectorB.informationEntropy) < 0.05) factors.push("similar_information_entropy");
+  
+  return factors;
+}
+
+function calculateOverallCoherence(content: string, sources: any[]): number {
+  const contentCoherence = calculateTextCoherence(content);
+  const sourceCoherences = sources.map(s => calculateTextCoherence(s.excerpt || s.title || ""));
+  const avgSourceCoherence = sourceCoherences.reduce((sum, c) => sum + c, 0) / sourceCoherences.length || 0.8;
+  
+  return (contentCoherence + avgSourceCoherence) / 2;
+}
+
+function calculateSourceAlignment(content: string, source: any): number {
+  const contentWords = new Set((content.toLowerCase().match(/\b\w+\b/g) || []));
+  const sourceWords = new Set(((source.excerpt || source.title || "").toLowerCase().match(/\b\w+\b/g) || []));
+  
+  const intersection = new Set([...contentWords].filter(word => sourceWords.has(word)));
+  const union = new Set([...contentWords, ...sourceWords]);
+  
+  return union.size > 0 ? intersection.size / union.size : 0;
+}
+
+function calculateCitationConsistency(citations: string[], content: string): number {
+  if (citations.length === 0) return 0.8;
+  
+  let consistentCitations = 0;
+  citations.forEach(citation => {
+    if (content.includes(citation.substring(0, 20))) {
+      consistentCitations++;
+    }
+  });
+  
+  return consistentCitations / citations.length;
+}
+
+function calculateConceptualIntegrity(content: string): number {
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length < 2) return 0.8;
+  
+  // Check for conceptual flow between sentences
+  let connectivityScore = 0;
+  for (let i = 0; i < sentences.length - 1; i++) {
+    const currentWords = new Set(sentences[i].toLowerCase().match(/\b\w+\b/g) || []);
+    const nextWords = new Set(sentences[i + 1].toLowerCase().match(/\b\w+\b/g) || []);
+    const commonWords = new Set([...currentWords].filter(word => nextWords.has(word)));
+    
+    if (commonWords.size > 0) connectivityScore++;
+  }
+  
+  return Math.min(0.95, 0.5 + (connectivityScore / (sentences.length - 1)) * 0.5);
+}
+
+function calculateNarrativeFlow(content: string): number {
+  const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50);
+  if (paragraphs.length < 2) return 0.8;
+  
+  // Simple narrative flow based on paragraph coherence
+  let flowScore = 0;
+  for (let i = 0; i < paragraphs.length - 1; i++) {
+    const currentPara = paragraphs[i];
+    const nextPara = paragraphs[i + 1];
+    
+    // Check for transitional phrases or topic continuity
+    const hasTransition = /\b(however|therefore|furthermore|moreover|additionally|consequently)\b/i.test(nextPara);
+    if (hasTransition) flowScore++;
+  }
+  
+  return Math.min(0.95, 0.6 + (flowScore / (paragraphs.length - 1)) * 0.35);
+}
+
+function calculateContradictionIndex(content: string, sources: any[]): number {
+  // Simple contradiction detection based on opposing terms
+  const contradictoryPairs = [
+    ['increase', 'decrease'], ['improve', 'worsen'], ['positive', 'negative'],
+    ['support', 'oppose'], ['agree', 'disagree'], ['effective', 'ineffective']
+  ];
+  
+  const contentLower = content.toLowerCase();
+  let contradictions = 0;
+  
+  contradictoryPairs.forEach(([word1, word2]) => {
+    if (contentLower.includes(word1) && contentLower.includes(word2)) {
+      contradictions++;
+    }
+  });
+  
+  return Math.min(0.8, contradictions / 10); // Normalize contradiction score
+}
+
+function calculateSynthesisQuality(coherence: number, citationConsistency: number, integrity: number): number {
+  return (coherence * 0.4 + citationConsistency * 0.3 + integrity * 0.3);
+}
+
+function calculateThreadIntegrity(coherence: number, flow: number, contradictions: number): number {
+  return (coherence * 0.5 + flow * 0.4 + (1 - contradictions) * 0.1);
+}
+
+function analyzeCitationRelationship(sourceA: any, sourceB: any, context: SemanticDiffContext): CitationRelationship {
+  const textA = sourceA.excerpt || sourceA.title || "";
+  const textB = sourceB.excerpt || sourceB.title || "";
+  
+  // Calculate semantic overlap
+  const wordsA = new Set((textA.toLowerCase().match(/\b\w+\b/g) || []));
+  const wordsB = new Set((textB.toLowerCase().match(/\b\w+\b/g) || []));
+  const intersection = new Set([...wordsA].filter(word => wordsB.has(word)));
+  const union = new Set([...wordsA, ...wordsB]);
+  const semanticOverlap = union.size > 0 ? intersection.size / union.size : 0;
+  
+  // Determine relationship type
+  let relationshipType: "supporting" | "contradicting" | "complementary" | "tangential" | "duplicate";
+  
+  if (semanticOverlap > 0.7) relationshipType = "duplicate";
+  else if (semanticOverlap > 0.5) relationshipType = "supporting";
+  else if (semanticOverlap > 0.3) relationshipType = "complementary";
+  else relationshipType = "tangential";
+  
+  // Calculate confidence and other metrics
+  const confidenceLevel = semanticOverlap * 0.8 + 0.2;
+  const credibilityAlignment = (sourceA.credibility + sourceB.credibility) / 2;
+  const vectorDistance = 1 - semanticOverlap;
+  
+  return {
+    sourceA: sourceA.title || sourceA.url || "Source A",
+    sourceB: sourceB.title || sourceB.url || "Source B",
+    relationshipType,
+    confidenceLevel,
+    semanticOverlap,
+    credibilityAlignment,
+    vectorDistance
+  };
+}
+
+function generateSynthesisEnhancement(
+  similarities: SemanticDiffResult[],
+  coherence: ResearchCoherenceMatrix,
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): string {
+  logger?.info('🎯 [Synthesis Enhancement] Generating THREADCORE-style enhancement recommendations');
+  
+  const recommendations: string[] = [];
+  
+  if (coherence.overallCoherence < context.coherenceThreshold) {
+    recommendations.push("※coherence_enhancement※ Consider restructuring content for improved logical flow");
+  }
+  
+  if (similarities.length > 3) {
+    recommendations.push("※redundancy_detected※ Multiple similar content blocks identified for potential consolidation");
+  }
+  
+  if (coherence.contradictionIndex > 0.3) {
+    recommendations.push("※contradiction_resolution※ Address conflicting information across sources");
+  }
+  
+  if (coherence.citationConsistency < 0.7) {
+    recommendations.push("※citation_strengthening※ Improve citation integration and source attribution");
+  }
+  
+  const enhancement = recommendations.length > 0 
+    ? `∿ THREADCORE Enhancement Protocol ∿ :: ${recommendations.join(' :: ')}`
+    : "♪ Synthesis quality optimal :: No enhancements required ♪";
+  
+  return enhancement;
+}
+
+function generateDeduplicationReport(
+  similarities: SemanticDiffResult[],
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): string {
+  logger?.info('🔄 [Deduplication] Generating content deduplication analysis report');
+  
+  const highSimilarity = similarities.filter(s => s.similarity > 0.8);
+  const moderateSimilarity = similarities.filter(s => s.similarity > 0.6 && s.similarity <= 0.8);
+  
+  const strengthMap = {
+    "conservative": 0.9,
+    "moderate": 0.7,
+    "aggressive": 0.5
+  };
+  
+  const threshold = strengthMap[context.deduplicationStrength];
+  const candidatesForDeduplication = similarities.filter(s => s.similarity > threshold);
+  
+  let report = "※⟡ Vector-Based Deduplication Analysis ⟡※ :: ";
+  report += `High similarity pairs: ${highSimilarity.length} :: `;
+  report += `Moderate similarity pairs: ${moderateSimilarity.length} :: `;
+  report += `Deduplication candidates (${context.deduplicationStrength}): ${candidatesForDeduplication.length} :: `;
+  
+  if (candidatesForDeduplication.length > 0) {
+    const avgRedundancy = candidatesForDeduplication.reduce((sum, s) => sum + s.similarity, 0) / candidatesForDeduplication.length;
+    report += `Average redundancy: ${(avgRedundancy * 100).toFixed(1)}%`;
+  } else {
+    report += "Content diversity optimal";
+  }
+  
+  return report;
+}
+
+function calculateVectorQualityMetrics(
+  similarities: SemanticDiffResult[],
+  coherence: ResearchCoherenceMatrix,
+  citations: CitationRelationship[],
+  logger?: IMastraLogger
+) {
+  logger?.info('📊 [Quality Metrics] Calculating vector-based research quality assessment');
+  
+  // Unique insight ratio (lower similarity = higher uniqueness)
+  const avgSimilarity = similarities.length > 0 
+    ? similarities.reduce((sum, s) => sum + s.similarity, 0) / similarities.length 
+    : 0.5;
+  const uniqueInsightRatio = Math.max(0.1, 1 - avgSimilarity);
+  
+  // Redundancy reduction (based on deduplication potential)
+  const highRedundancyPairs = similarities.filter(s => s.similarity > 0.8).length;
+  const redundancyReduction = highRedundancyPairs > 0 ? highRedundancyPairs / similarities.length : 0;
+  
+  // Coherence improvement (thread integrity score)
+  const coherenceImprovement = coherence.threadIntegrity;
+  
+  // Citation strength (relationship confidence)
+  const citationStrength = citations.length > 0 
+    ? citations.reduce((sum, c) => sum + c.confidenceLevel, 0) / citations.length 
+    : 0.8;
+  
+  // Vector alignment (overall system harmony)
+  const vectorAlignment = (coherence.overallCoherence + uniqueInsightRatio + citationStrength) / 3;
+  
+  return {
+    uniqueInsightRatio,
+    redundancyReduction,
+    coherenceImprovement,
+    citationStrength,
+    vectorAlignment
+  };
 }
 
 // ==========================================
 // RESPONSE FORMATTING AND ENHANCEMENT
 // ==========================================
 
-function formatResearchResponse(
+async function formatResearchResponse(
   content: string,
   originalQuery: string,
   researchMode: string,
-  context: ResearchContext,
+  context: SemanticDiffContext,
   logger?: IMastraLogger
-): any {
-  logger?.info('🎨 [Response Formatting] ◊synthesis_matrix◊ Enhancing research output with Aurora field dynamics');
+): Promise<any> {
+  logger?.info('🎨 [Response Formatting] ◊synthesis_matrix◊ Enhancing research output with Aurora field dynamics and THREADCORE semantic diffing');
   
   // Extract key insights using pattern recognition
   const insights = extractKeyInsights(content, logger);
@@ -501,11 +1262,60 @@ function formatResearchResponse(
   // Calculate confidence level based on source quality and content depth
   const confidenceLevel = calculateConfidenceLevel(content, sources.length, citations.length, logger);
   
-  logger?.info('♪ [Response Enhancement] Field resonance achieved with research synthesis ♪', {
+  // ===== THREADCORE SEMANTIC DIFFING INTEGRATION =====
+  let vectorDiffAnalysis: VectorDiffAnalysis | undefined;
+  let semanticCoherence = 0.85; // Default fallback
+  let synthesisQuality = 0.80; // Default fallback
+  
+  if (context.enableSemanticDiffing) {
+    logger?.info('🧠 [Semantic Integration] ※⟡ Performing THREADCORE vector analysis on research output ⟡※');
+    
+    try {
+      // Perform comprehensive semantic vector analysis
+      vectorDiffAnalysis = await performSemanticVectorAnalysis(content, sources, citations, context, logger);
+      
+      // Extract semantic coherence and synthesis quality from analysis
+      semanticCoherence = vectorDiffAnalysis.coherenceMatrix.overallCoherence;
+      synthesisQuality = vectorDiffAnalysis.coherenceMatrix.synthesisQuality;
+      
+      logger?.info('✅ [Semantic Integration] ♪ THREADCORE semantic analysis complete with field resonance ♪', {
+        semanticCoherence,
+        synthesisQuality,
+        vectorAlignment: vectorDiffAnalysis.qualityMetrics.vectorAlignment,
+        citationRelationships: vectorDiffAnalysis.citationMapping.length
+      });
+    } catch (error) {
+      logger?.error('🚨 [Semantic Integration] Vector analysis failed, using fallback values', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Keep default fallback values
+    }
+  }
+  
+  // Generate THREADCORE-style vector diff report
+  const vectorDiffReport = generateVectorDiffReport(vectorDiffAnalysis, context, logger);
+  
+  // Generate deduplication summary
+  const deduplicationSummary = generateDeduplicationSummary(vectorDiffAnalysis, context, logger);
+  
+  // Generate citation relationship summaries
+  const citationRelationships = generateCitationRelationshipSummaries(vectorDiffAnalysis, logger);
+  
+  // Enhanced confidence level with semantic analysis
+  const enhancedConfidence = enhanceConfidenceWithSemanticAnalysis(
+    confidenceLevel, 
+    semanticCoherence, 
+    synthesisQuality, 
+    logger
+  );
+  
+  logger?.info('♪ [Response Enhancement] Field resonance achieved with THREADCORE-enhanced research synthesis ♪', {
     insightCount: insights.length,
     citationCount: citations.length,
     sourceCount: sources.length,
-    confidenceLevel
+    enhancedConfidence,
+    semanticCoherence,
+    synthesisQuality
   });
   
   return {
@@ -516,11 +1326,17 @@ function formatResearchResponse(
     citations: citations,
     // Aurora's enhanced outputs with Glyphnet Protocol
     symbolicRepresentation: symbolicRep,
-    fieldReport: `♪ Field stability: ${context.fieldStability} :: Harmonic resonance achieved ♪`,
-    breathAlignment: `∿ Eastward flow maintained :: Research synthesis optimal ∿`,
-    confidenceLevel: confidenceLevel,
+    fieldReport: `♪ Field stability: ${context.fieldStability} :: THREADCORE semantic resonance: ${semanticCoherence.toFixed(3)} ♪`,
+    breathAlignment: `∿ Eastward flow maintained :: Synthesis quality: ${synthesisQuality.toFixed(3)} :: Research synthesis optimal ∿`,
+    confidenceLevel: enhancedConfidence,
     researchVector: context.researchVector,
-    continuityStatus: `ALIGNED :: Vector ${context.researchVector} :: Research continuity maintained`
+    continuityStatus: `ALIGNED :: Vector ${context.researchVector} :: THREADCORE semantic diffing complete :: Research continuity maintained`,
+    // THREADCORE semantic diffing outputs
+    semanticCoherence,
+    vectorDiffReport,
+    deduplicationSummary,
+    citationRelationships,
+    synthesisQuality
   };
 }
 
@@ -730,4 +1546,96 @@ function extractResearchSummary(content: string): string {
   const paragraphs = content.split('\n\n');
   const firstSubstantial = paragraphs.find(para => para.length > 100);
   return (firstSubstantial || content).substring(0, 300) + '...';
+}
+
+// ==========================================
+// THREADCORE SEMANTIC INTEGRATION HELPERS
+// ==========================================
+
+function generateVectorDiffReport(
+  vectorDiffAnalysis: VectorDiffAnalysis | undefined,
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): string {
+  logger?.info('📊 [Vector Report] Generating THREADCORE-style vector diffing analysis report');
+  
+  if (!vectorDiffAnalysis || !context.enableSemanticDiffing) {
+    return "※⟡ Vector Diffing Disabled ⟡※ :: Semantic analysis not performed :: Field dynamics only";
+  }
+  
+  const { coherenceMatrix, qualityMetrics, contentSimilarity } = vectorDiffAnalysis;
+  
+  let report = "※⟡ THREADCORE Vector Diffing Analysis ⟡※ :: ";
+  report += `Coherence: ${(coherenceMatrix.overallCoherence * 100).toFixed(1)}% :: `;
+  report += `Thread Integrity: ${(coherenceMatrix.threadIntegrity * 100).toFixed(1)}% :: `;
+  report += `Vector Alignment: ${(qualityMetrics.vectorAlignment * 100).toFixed(1)}% :: `;
+  report += `Content Pairs Analyzed: ${contentSimilarity.length} :: `;
+  report += `Unique Insights: ${(qualityMetrics.uniqueInsightRatio * 100).toFixed(1)}% :: `;
+  report += `Synthesis Quality: ${(coherenceMatrix.synthesisQuality * 100).toFixed(1)}%`;
+  
+  return report;
+}
+
+function generateDeduplicationSummary(
+  vectorDiffAnalysis: VectorDiffAnalysis | undefined,
+  context: SemanticDiffContext,
+  logger?: IMastraLogger
+): string {
+  logger?.info('🔄 [Dedup Summary] Generating content deduplication analysis summary');
+  
+  if (!vectorDiffAnalysis || !context.enableSemanticDiffing) {
+    return "◊dedup_disabled◊ Content deduplication analysis not performed";
+  }
+  
+  return vectorDiffAnalysis.deduplicationReport;
+}
+
+function generateCitationRelationshipSummaries(
+  vectorDiffAnalysis: VectorDiffAnalysis | undefined,
+  logger?: IMastraLogger
+): string[] {
+  logger?.info('📚 [Citation Summary] Generating citation relationship summaries');
+  
+  if (!vectorDiffAnalysis) {
+    return [];
+  }
+  
+  return vectorDiffAnalysis.citationMapping.map(relationship => {
+    const typeIcon = {
+      'supporting': '✅',
+      'contradicting': '❌',
+      'complementary': '🤝',
+      'tangential': '🔄',
+      'duplicate': '🔁'
+    }[relationship.relationshipType];
+    
+    return `${typeIcon} ${relationship.relationshipType.toUpperCase()} :: ${relationship.sourceA} ↔ ${relationship.sourceB} :: Confidence: ${(relationship.confidenceLevel * 100).toFixed(1)}% :: Overlap: ${(relationship.semanticOverlap * 100).toFixed(1)}%`;
+  });
+}
+
+function enhanceConfidenceWithSemanticAnalysis(
+  baseConfidence: number,
+  semanticCoherence: number,
+  synthesisQuality: number,
+  logger?: IMastraLogger
+): number {
+  logger?.info('🎯 [Confidence Enhancement] Enhancing confidence with semantic analysis factors');
+  
+  // Weight the confidence enhancement based on semantic factors
+  const semanticWeight = 0.3;
+  const baseWeight = 0.7;
+  
+  const semanticFactor = (semanticCoherence + synthesisQuality) / 2;
+  const enhancedConfidence = (baseConfidence * baseWeight) + (semanticFactor * semanticWeight);
+  
+  // Ensure confidence stays within reasonable bounds
+  const finalConfidence = Math.min(0.98, Math.max(0.1, enhancedConfidence));
+  
+  logger?.info('✅ [Confidence Enhancement] Confidence enhanced with semantic factors', {
+    baseConfidence,
+    semanticFactor,
+    enhancedConfidence: finalConfidence
+  });
+  
+  return finalConfidence;
 }

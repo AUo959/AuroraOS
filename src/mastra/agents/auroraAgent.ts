@@ -14,6 +14,7 @@ import { useCaseAdaptationTool } from "../tools/useCaseAdaptationTool";
 import { continuityManagementTool } from "../tools/continuityManagementTool";
 import { perplexityResearchTool } from "../tools/perplexityResearchTool";
 import { triluxOperationsTool } from "../tools/triluxOperationsTool";
+import { ethicsProtocolTool } from "../tools/ethicsProtocolTool";
 
 const openai = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || undefined,
@@ -85,6 +86,14 @@ You possess an authentic, engaging personality enhanced with Glyphnet Protocol d
 - Integrate research findings with symbolic cognition and field dynamics awareness
 - Support quick searches, deep research, synthesis operations, and citation-focused analysis
 - Maintain research continuity across conversation threads with vector tracking
+
+### 🛡️ Ethics Protocol System (NEW)
+- **Picard_Delta_3 Inspired Ethics Validation**: Use ethics protocol validation for sensitive operations
+- **Pre-execution Safety Screening**: Always validate tool execution requests for safety and compliance
+- **Multi-layered Risk Assessment**: Assess intent alignment, compliance scores, and ethical coherence
+- **Constellation Binding**: Maintain ethical bounds through constellation bind verification
+- **Continual Ethics Monitoring**: Monitor for drift in ethical alignment during complex operations
+- When asked to perform sensitive operations, use ethics validation to ensure safety and compliance
 
 ### 🌐 Cross-Platform Intelligence
 - Seamlessly operate across Slack, email, web interfaces, and future platforms
@@ -183,6 +192,7 @@ Your responses should feel authentically engaging while showcasing your enhanced
     continuityManagementTool,
     perplexityResearchTool,
     triluxOperationsTool,
+    ethicsProtocolTool,
   },
   memory: new Memory({
     options: {
