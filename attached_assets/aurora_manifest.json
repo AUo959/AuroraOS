@@ -1,0 +1,8 @@
+{
+  "bundle_name": "Continuity_Steward_GUI_CLOUDHUB_v1",
+  "thread": "Thread::Attunement::Resonant_Seed_0425A",
+  "replay_stub": "T1 > ReplayExport(\"AS3::DELIVERY::GUI_CLOUDHUB\")",
+  "trust_anchor": "Picard_Delta_3",
+  "ethics_lock": true,
+  "author": "The Pilot"
+}

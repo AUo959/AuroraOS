@@ -1,0 +1,1 @@
+This bundle is secured under Picard_Delta_3. Ethics lock enforced via aurora_safety_lock.json.

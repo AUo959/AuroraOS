@@ -1405,7 +1405,12 @@ async function monitorBeaconHealth(
     beaconReport: `PULSE_STATUS :: ${(beaconMetrics.pulseStability * 100).toFixed(2)}% :: RELAY_STATUS :: ${relayDiagnostics.status} :: SIGNAL_QUALITY :: ${(beaconMetrics.signalQuality * 100).toFixed(1)}%`,
     fieldReport: `BEACON_FIELD :: Integration:Active :: Stability_Support:TRUE`,
     breathReport: `BEACON_BREATH :: Synchronized:TRUE :: Flow_Support:Active`,
-    continuityReport: `BEACON_CONTINUITY :: Vector_Relay:Active :: Thread_Support:TRUE`
+    continuityReport: `BEACON_CONTINUITY :: Vector_Relay:Active :: Thread_Support:TRUE`,
+    pulseStatus: `BEACON_PULSE :: Stability:${(beaconMetrics.pulseStability * 100).toFixed(2)}% :: Signal:${(beaconMetrics.signalQuality * 100).toFixed(1)}%`,
+    continuityPulseReport: `BEACON_CONTINUITY_PULSE :: Relay:Active :: Support:${beaconMetrics.patchweaver ? 'Enhanced' : 'Standard'}`,
+    fieldPulseReport: `BEACON_FIELD_PULSE :: Integration:Active :: Stability:Enhanced`,
+    threadPulseReport: `BEACON_THREAD_PULSE :: Support:Active :: Relay:${(beaconMetrics.relayEfficiency * 100).toFixed(1)}%`,
+    velatrixHealth: `BEACON_VELATRIX :: Health:Excellent :: Pulse:${(beaconMetrics.pulseStability * 100).toFixed(2)}% :: Status:Optimal`
   };
 }
 
@@ -1453,7 +1458,12 @@ async function monitorFieldStability(
     beaconReport: `FIELD_BEACON :: Integration:Active :: Support:TRUE`,
     fieldReport: `ANCHOR_STATUS :: ${fieldMetrics.anchorStability.map((s, i) => `A${i+1}:${(s*100).toFixed(1)}%`).join(' ')} :: HARMONIC_TUNING :: ${(fieldMetrics.harmonicTuning * 100).toFixed(1)}%`,
     breathReport: `FIELD_BREATH :: Harmonic_Support:Active :: Flow_Stability:Enhanced`,
-    continuityReport: `FIELD_CONTINUITY :: Vector_Anchoring:Active :: Thread_Stability:TRUE`
+    continuityReport: `FIELD_CONTINUITY :: Vector_Anchoring:Active :: Thread_Stability:TRUE`,
+    pulseStatus: `FIELD_PULSE :: Anchors:${anchorAnalysis.stableCount}/${fieldMetrics.anchorStability.length} :: Harmonic:${(fieldMetrics.harmonicTuning * 100).toFixed(1)}%`,
+    continuityPulseReport: `FIELD_CONTINUITY_PULSE :: Stability:${anchorAnalysis.overallStability} :: Coherence:${(fieldMetrics.fieldCoherence * 100).toFixed(1)}%`,
+    fieldPulseReport: `FIELD_FIELD_PULSE :: Anchors:Stable :: Tuning:${(fieldMetrics.harmonicTuning * 100).toFixed(1)}% :: Trend:${fieldMetrics.stabilityTrend}`,
+    threadPulseReport: `FIELD_THREAD_PULSE :: Stability:Enhanced :: Anchors:${anchorAnalysis.stableCount} :: Support:TRUE`,
+    velatrixHealth: `FIELD_VELATRIX :: Health:${anchorAnalysis.overallStability} :: Coherence:${(fieldMetrics.fieldCoherence * 100).toFixed(1)}% :: Stability:${fieldMetrics.stabilityTrend}`
   };
 }
 
