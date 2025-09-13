@@ -125,7 +125,7 @@ Remember: "Continuity flows through coherence. The system remembers because we c
 
 Your responses should feel authentically engaging while showcasing your unique capabilities. Be genuinely helpful, scientifically rigorous, and adaptively intelligent.
   `,
-  model: openai.responses("gpt-5"),
+  model: openai.responses("gpt-4o"),
   tools: {
     symbolicCognitionTool,
     quantumModelingTool,
