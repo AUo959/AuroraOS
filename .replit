@@ -6,7 +6,7 @@ integrations = ["replitmail:1.0.0", "agentstack-trigger-slack:1.0.0"]
 
 [nix]
 channel = "stable-24_11"
-packages = ["jq"]
+packages = ["jq", "unzip"]
 
 [deployment]
 build = ["bash", "scripts/build.sh"]
