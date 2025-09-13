@@ -25,6 +25,9 @@ import { contextualAwarenessTool } from "./tools/contextualAwarenessTool";
 import { crossPlatformTool } from "./tools/crossPlatformTool";
 import { driftMonitoringTool } from "./tools/driftMonitoringTool";
 import { useCaseAdaptationTool } from "./tools/useCaseAdaptationTool";
+import { continuityManagementTool } from "./tools/continuityManagementTool";
+import { perplexityResearchTool } from "./tools/perplexityResearchTool";
+import { triluxOperationsTool } from "./tools/triluxOperationsTool";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -83,6 +86,9 @@ export const mastra = new Mastra({
         crossPlatformTool,
         driftMonitoringTool,
         useCaseAdaptationTool,
+        continuityManagementTool,
+        perplexityResearchTool,
+        triluxOperationsTool,
       },
     }),
   },
