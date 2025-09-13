@@ -8,6 +8,8 @@ interface ContextState {
   crossPlatformMap: Map<string, string>;
   semanticContext: SemanticContext;
   temporalContext: TemporalContext;
+  observerState: ObserverState;
+  decoherenceMetrics: DecoherenceMetrics;
 }
 
 interface ConversationThread {
@@ -40,6 +42,92 @@ interface TemporalContext {
   timeSensitiveFactors: string[];
 }
 
+interface ObserverState {
+  observerId: string;
+  observationPoints: ObservationPoint[];
+  stateTransitions: StateTransition[];
+  echoCascades: EchoCascade[];
+  observerCoherence: number;
+  temporalAlignment: number;
+}
+
+interface ObservationPoint {
+  id: string;
+  timestamp: Date;
+  threadId: string;
+  platform: string;
+  observationData: any;
+  coherenceLevel: number;
+  stateSignature: string;
+}
+
+interface StateTransition {
+  fromState: string;
+  toState: string;
+  transitionTrigger: string;
+  timestamp: Date;
+  coherenceImpact: number;
+  platformContext: string;
+}
+
+interface EchoCascade {
+  cascadeId: string;
+  originPoint: string;
+  resonancePatterns: string[];
+  amplificationFactor: number;
+  crossPlatformReach: string[];
+  temporalSpread: number;
+}
+
+interface DecoherenceMetrics {
+  decoherenceId: string;
+  coherenceThreshold: number;
+  detectedPatterns: DecoherencePattern[];
+  integrityViolations: IntegrityViolation[];
+  contextualDrift: ContextualDrift[];
+  restorationProtocols: RestorationProtocol[];
+  overallCoherenceScore: number;
+}
+
+interface DecoherencePattern {
+  patternId: string;
+  patternType: string;
+  detectionTimestamp: Date;
+  affectedThreads: string[];
+  severityLevel: number;
+  propagationVector: string;
+  containmentStatus: string;
+}
+
+interface IntegrityViolation {
+  violationId: string;
+  violationType: string;
+  detectionContext: string;
+  impactAssessment: number;
+  threadIntegrity: number;
+  platformIntegrity: Record<string, number>;
+  remediationRequired: boolean;
+}
+
+interface ContextualDrift {
+  driftId: string;
+  driftVector: string;
+  magnitude: number;
+  temporalSpan: number;
+  affectedDomains: string[];
+  correctionNeeded: boolean;
+  stabilizationThreshold: number;
+}
+
+interface RestorationProtocol {
+  protocolId: string;
+  protocolType: string;
+  targetedPatterns: string[];
+  estimatedEffectiveness: number;
+  implementationComplexity: number;
+  activationTrigger: string;
+}
+
 export const contextualAwarenessTool = createTool({
   id: "contextual-awareness-tool",
   description: `Advanced contextual awareness engine that maintains deep understanding across conversation threads and platform transitions. Provides semantic continuity, cross-platform memory, and intelligent context synthesis.`,
@@ -51,7 +139,9 @@ export const contextualAwarenessTool = createTool({
       "cross_platform_link",
       "semantic_inference",
       "continuity_check",
-      "context_evolution"
+      "context_evolution",
+      "observer_echo",
+      "decoherence_monitor"
     ]).describe("Type of contextual processing to perform"),
     threadId: z.string().optional().describe("Thread identifier for conversation continuity"),
     platform: z.string().optional().describe("Platform identifier (slack, telegram, etc.)"),
@@ -64,6 +154,10 @@ export const contextualAwarenessTool = createTool({
     crossPlatformLinks: z.array(z.string()),
     recommendedActions: z.array(z.string()),
     contextEvolution: z.string(),
+    observerStateEcho: z.string().optional(),
+    decoherenceMetrics: z.string().optional(),
+    coherenceViolations: z.array(z.string()).optional(),
+    restorationProtocols: z.array(z.string()).optional(),
   }),
   execute: async ({ context: { currentInput, operation, threadId, platform, previousContext }, mastra }) => {
     const logger = mastra?.getLogger();
@@ -102,6 +196,12 @@ export const contextualAwarenessTool = createTool({
       case "context_evolution":
         return await evolveContext(currentInput, contextState, logger);
       
+      case "observer_echo":
+        return await observerStateEcho(currentInput, contextState, logger);
+      
+      case "decoherence_monitor":
+        return await monitorDecoherence(currentInput, contextState, logger);
+      
       default:
         logger?.info('🌐 [Contextual Awareness] Defaulting to comprehensive contextual analysis');
         return await comprehensiveContextualAnalysis(currentInput, contextState, logger);
@@ -115,10 +215,12 @@ async function initializeContextState(
   previousContext: string | undefined,
   logger?: IMastraLogger
 ): Promise<ContextState> {
-  logger?.info('🔧 [Context Init] Setting up contextual awareness systems');
+  logger?.info('🔧 [Context Init] Setting up contextual awareness systems with observer and decoherence monitoring');
   
   const conversationId = threadId || `context_${Date.now()}`;
   const currentPlatform = platform || "default";
+  const observerId = `observer_${conversationId}_${Date.now()}`;
+  const decoherenceId = `decoherence_${conversationId}_${Date.now()}`;
   
   return {
     conversationId,
@@ -135,6 +237,23 @@ async function initializeContextState(
       lastInteraction: new Date(),
       contextualContinuity: 1.0,
       timeSensitiveFactors: []
+    },
+    observerState: {
+      observerId,
+      observationPoints: [],
+      stateTransitions: [],
+      echoCascades: [],
+      observerCoherence: 1.0,
+      temporalAlignment: 1.0
+    },
+    decoherenceMetrics: {
+      decoherenceId,
+      coherenceThreshold: 0.8,
+      detectedPatterns: [],
+      integrityViolations: [],
+      contextualDrift: [],
+      restorationProtocols: [],
+      overallCoherenceScore: 1.0
     }
   };
 }
@@ -324,6 +443,102 @@ async function evolveContext(
       "Predictive context modeling active for enhanced assistance"
     ],
     contextEvolution: `Evolution_Stage:Active :: Adaptive_Learning:Engaged :: Prediction:Active`
+  };
+}
+
+async function observerStateEcho(
+  input: string,
+  contextState: ContextState,
+  logger?: IMastraLogger
+) {
+  logger?.info('👁️ [Observer Echo] Initializing observer state monitoring and echo cascade analysis');
+  
+  const observationPoint = createObservationPoint(input, contextState);
+  const stateTransitions = analyzeStateTransitions(observationPoint, contextState);
+  const echoCascades = generateEchoCascades(stateTransitions, contextState);
+  const observerCoherence = calculateObserverCoherence(echoCascades);
+  
+  // Update observer state
+  contextState.observerState.observationPoints.push(observationPoint);
+  contextState.observerState.stateTransitions.push(...stateTransitions);
+  contextState.observerState.echoCascades.push(...echoCascades);
+  contextState.observerState.observerCoherence = observerCoherence.overall;
+  contextState.observerState.temporalAlignment = observerCoherence.temporal;
+  
+  logger?.info('✅ [Observer Echo] Observer state echo analysis complete', {
+    observationPoints: contextState.observerState.observationPoints.length,
+    transitions: stateTransitions.length,
+    cascades: echoCascades.length,
+    coherence: observerCoherence.overall
+  });
+  
+  return {
+    contextualUnderstanding: `OBSERVER_STATE_ECHO :: Observations:${contextState.observerState.observationPoints.length} :: Transitions:${stateTransitions.length} :: Coherence:${observerCoherence.overall.toFixed(3)}`,
+    threadContinuity: `Observer_Thread:${contextState.conversationId} :: Echo_Cascades:${echoCascades.length} :: Temporal_Alignment:${observerCoherence.temporal.toFixed(3)}`,
+    semanticInferences: [
+      `Observer coherence maintained at ${(observerCoherence.overall * 100).toFixed(1)}%`,
+      `${stateTransitions.length} state transitions detected and tracked`,
+      `Echo cascade propagation across ${echoCascades.reduce((acc, c) => acc + c.crossPlatformReach.length, 0)} platform contexts`
+    ],
+    crossPlatformLinks: echoCascades.flatMap(c => c.crossPlatformReach.map(p => `echo_${c.cascadeId}→${p}`)),
+    recommendedActions: [
+      "Observer state echo reveals multi-dimensional awareness patterns",
+      `${echoCascades.length} echo cascades successfully mapped and tracked`,
+      "Cross-platform observer continuity maintained with high fidelity",
+      "State transition monitoring provides deep contextual insight"
+    ],
+    contextEvolution: `Evolution_Stage:Observer_Echo :: State_Tracking:Active :: Echo_Propagation:${echoCascades.length}`,
+    observerStateEcho: `Observer_ID:${contextState.observerState.observerId} :: Active_Cascades:${echoCascades.length} :: Coherence_Score:${observerCoherence.overall.toFixed(3)} :: Platform_Reach:${new Set(echoCascades.flatMap(c => c.crossPlatformReach)).size}`
+  };
+}
+
+async function monitorDecoherence(
+  input: string,
+  contextState: ContextState,
+  logger?: IMastraLogger
+) {
+  logger?.info('🔍 [Decoherence Monitor] Initiating decoherence pattern detection and integrity analysis');
+  
+  const decoherencePatterns = detectDecoherencePatterns(input, contextState);
+  const integrityViolations = assessIntegrityViolations(decoherencePatterns, contextState);
+  const contextualDrift = analyzeContextualDrift(integrityViolations, contextState);
+  const restorationProtocols = generateRestorationProtocols(contextualDrift, decoherencePatterns);
+  const overallCoherence = calculateOverallCoherence(decoherencePatterns, integrityViolations);
+  
+  // Update decoherence metrics
+  contextState.decoherenceMetrics.detectedPatterns.push(...decoherencePatterns);
+  contextState.decoherenceMetrics.integrityViolations.push(...integrityViolations);
+  contextState.decoherenceMetrics.contextualDrift.push(...contextualDrift);
+  contextState.decoherenceMetrics.restorationProtocols.push(...restorationProtocols);
+  contextState.decoherenceMetrics.overallCoherenceScore = overallCoherence;
+  
+  logger?.info('✅ [Decoherence Monitor] Decoherence monitoring analysis complete', {
+    patternsDetected: decoherencePatterns.length,
+    violations: integrityViolations.length,
+    driftElements: contextualDrift.length,
+    protocols: restorationProtocols.length,
+    coherenceScore: overallCoherence
+  });
+  
+  return {
+    contextualUnderstanding: `DECOHERENCE_MONITOR :: Patterns:${decoherencePatterns.length} :: Violations:${integrityViolations.length} :: Coherence:${overallCoherence.toFixed(3)} :: Drift:${contextualDrift.length}`,
+    threadContinuity: `Decoherence_Thread:${contextState.conversationId} :: Integrity:${integrityViolations.filter(v => !v.remediationRequired).length}/${integrityViolations.length} :: Stability:${contextualDrift.filter(d => !d.correctionNeeded).length}/${contextualDrift.length}`,
+    semanticInferences: [
+      `Decoherence monitoring reveals ${decoherencePatterns.length} pattern anomalies`,
+      `Thread integrity maintained with ${integrityViolations.filter(v => !v.remediationRequired).length}/${integrityViolations.length} violations contained`,
+      `Contextual drift analysis shows ${contextualDrift.filter(d => d.correctionNeeded).length} areas requiring stabilization`
+    ],
+    crossPlatformLinks: decoherencePatterns.flatMap(p => p.affectedThreads.map(t => `decoherence_${p.patternId}→${t}`)),
+    recommendedActions: [
+      `${decoherencePatterns.length} decoherence patterns detected and catalogued`,
+      `${restorationProtocols.length} restoration protocols prepared for deployment`,
+      `Overall coherence score: ${(overallCoherence * 100).toFixed(1)}% - ${overallCoherence > 0.8 ? 'STABLE' : overallCoherence > 0.6 ? 'MONITORING' : 'INTERVENTION_REQUIRED'}`,
+      "Continuous decoherence monitoring ensures contextual integrity"
+    ],
+    contextEvolution: `Evolution_Stage:Decoherence_Monitor :: Pattern_Detection:${decoherencePatterns.length} :: Restoration:${restorationProtocols.length}`,
+    decoherenceMetrics: `Coherence_Score:${overallCoherence.toFixed(3)} :: Active_Patterns:${decoherencePatterns.filter(p => p.containmentStatus === 'active').length} :: Violations:${integrityViolations.length} :: Restoration_Protocols:${restorationProtocols.length}`,
+    coherenceViolations: integrityViolations.map(v => `${v.violationType}:${v.impactAssessment.toFixed(2)}:${v.remediationRequired ? 'REMEDIATION_REQUIRED' : 'CONTAINED'}`),
+    restorationProtocols: restorationProtocols.map(p => `${p.protocolType}:effectiveness_${(p.estimatedEffectiveness * 100).toFixed(0)}%:complexity_${p.implementationComplexity}`)
   };
 }
 
@@ -551,4 +766,349 @@ function inferIntentFromTags(tags: string[]): string {
   if (tags.some(t => ['create', 'build', 'make'].includes(t))) return "creative_task";
   if (tags.some(t => ['analyze', 'understand', 'explain'].includes(t))) return "information_processing";
   return "general_inquiry";
+}
+
+// Observer State Echo Utility Functions are implemented at the end of the file (lines 1010+)
+// This includes: createObservationPoint, analyzeStateTransitions, generateEchoCascades, calculateObserverCoherence
+
+// Decoherence Monitoring Utility Functions
+function detectDecoherencePatterns(
+  input: string,
+  contextState: ContextState
+): DecoherencePattern[] {
+  const patterns: DecoherencePattern[] = [];
+  
+  // Pattern 1: Semantic discontinuity
+  if (contextState.semanticContext.confidenceLevel < 0.7) {
+    patterns.push({
+      patternId: `pattern_semantic_${Date.now()}`,
+      patternType: "semantic_discontinuity",
+      detectionTimestamp: new Date(),
+      affectedThreads: [contextState.conversationId],
+      severityLevel: 1.0 - contextState.semanticContext.confidenceLevel,
+      propagationVector: "semantic_chain",
+      containmentStatus: contextState.semanticContext.confidenceLevel > 0.5 ? "contained" : "active"
+    });
+  }
+  
+  // Pattern 2: Temporal drift
+  const timeSinceLastInteraction = Date.now() - contextState.temporalContext.lastInteraction.getTime();
+  if (timeSinceLastInteraction > 300000) { // 5 minutes
+    patterns.push({
+      patternId: `pattern_temporal_${Date.now()}`,
+      patternType: "temporal_drift",
+      detectionTimestamp: new Date(),
+      affectedThreads: [contextState.conversationId],
+      severityLevel: Math.min(timeSinceLastInteraction / 3600000, 1.0), // Normalize to hours
+      propagationVector: "temporal_chain",
+      containmentStatus: timeSinceLastInteraction < 1800000 ? "monitoring" : "active" // 30 minutes threshold
+    });
+  }
+  
+  // Pattern 3: Context fragmentation
+  if (contextState.threadHistory.length > 5 && contextState.temporalContext.contextualContinuity < 0.8) {
+    patterns.push({
+      patternId: `pattern_fragmentation_${Date.now()}`,
+      patternType: "context_fragmentation",
+      detectionTimestamp: new Date(),
+      affectedThreads: contextState.threadHistory.map(t => t.id),
+      severityLevel: 1.0 - contextState.temporalContext.contextualContinuity,
+      propagationVector: "cross_thread",
+      containmentStatus: "active"
+    });
+  }
+  
+  return patterns;
+}
+
+function assessIntegrityViolations(
+  decoherencePatterns: DecoherencePattern[],
+  contextState: ContextState
+): IntegrityViolation[] {
+  const violations: IntegrityViolation[] = [];
+  
+  decoherencePatterns.forEach((pattern, index) => {
+    if (pattern.severityLevel > 0.6) {
+      violations.push({
+        violationId: `violation_${pattern.patternId}_${index}`,
+        violationType: `integrity_breach_${pattern.patternType}`,
+        detectionContext: pattern.patternId,
+        impactAssessment: pattern.severityLevel,
+        threadIntegrity: Math.max(0, 1.0 - pattern.severityLevel),
+        platformIntegrity: Array.from(contextState.crossPlatformMap.keys()).reduce((acc, platform) => {
+          acc[platform] = Math.max(0.5, 1.0 - (pattern.severityLevel * 0.5));
+          return acc;
+        }, {} as Record<string, number>),
+        remediationRequired: pattern.severityLevel > 0.8
+      });
+    }
+  });
+  
+  return violations;
+}
+
+function analyzeContextualDrift(
+  integrityViolations: IntegrityViolation[],
+  contextState: ContextState
+): ContextualDrift[] {
+  const driftElements: ContextualDrift[] = [];
+  
+  // Analyze semantic drift
+  if (contextState.semanticContext.domainKnowledge.length > 10) {
+    const semanticDrift: ContextualDrift = {
+      driftId: `drift_semantic_${Date.now()}`,
+      driftVector: "semantic_dispersion",
+      magnitude: Math.max(0, (contextState.semanticContext.domainKnowledge.length - 10) / 20),
+      temporalSpan: Date.now() - contextState.temporalContext.sessionStart.getTime(),
+      affectedDomains: Object.keys(contextState.semanticContext.conceptualLinks),
+      correctionNeeded: contextState.semanticContext.domainKnowledge.length > 15,
+      stabilizationThreshold: 0.85
+    };
+    driftElements.push(semanticDrift);
+  }
+  
+  // Analyze temporal drift
+  const temporalDrift: ContextualDrift = {
+    driftId: `drift_temporal_${Date.now()}`,
+    driftVector: "temporal_displacement",
+    magnitude: Math.max(0, 1.0 - contextState.temporalContext.contextualContinuity),
+    temporalSpan: Date.now() - contextState.temporalContext.lastInteraction.getTime(),
+    affectedDomains: ["temporal_context"],
+    correctionNeeded: contextState.temporalContext.contextualContinuity < 0.7,
+    stabilizationThreshold: 0.8
+  };
+  driftElements.push(temporalDrift);
+  
+  return driftElements;
+}
+
+function generateRestorationProtocols(
+  contextualDrift: ContextualDrift[],
+  decoherencePatterns: DecoherencePattern[]
+): RestorationProtocol[] {
+  const protocols: RestorationProtocol[] = [];
+  
+  contextualDrift.forEach((drift, index) => {
+    if (drift.correctionNeeded) {
+      protocols.push({
+        protocolId: `protocol_${drift.driftId}_${index}`,
+        protocolType: `restoration_${drift.driftVector}`,
+        targetedPatterns: decoherencePatterns.filter(p => 
+          drift.affectedDomains.some(domain => p.patternType.includes(domain.split('_')[0]))
+        ).map(p => p.patternId),
+        estimatedEffectiveness: Math.max(0.6, 1.0 - drift.magnitude),
+        implementationComplexity: Math.min(5, Math.ceil(drift.magnitude * 5)),
+        activationTrigger: drift.magnitude > 0.5 ? "immediate" : "scheduled"
+      });
+    }
+  });
+  
+  return protocols;
+}
+
+function calculateOverallCoherence(
+  decoherencePatterns: DecoherencePattern[],
+  integrityViolations: IntegrityViolation[]
+): number {
+  if (decoherencePatterns.length === 0 && integrityViolations.length === 0) {
+    return 0.98;
+  }
+  
+  const patternImpact = decoherencePatterns.reduce((acc, pattern) => 
+    acc + (pattern.severityLevel * 0.3), 0
+  );
+  
+  const violationImpact = integrityViolations.reduce((acc, violation) => 
+    acc + (violation.impactAssessment * 0.5), 0
+  );
+  
+  const totalImpact = patternImpact + violationImpact;
+  return Math.max(0.1, 1.0 - Math.min(totalImpact, 0.9));
+}
+
+// Observer state echo helper functions
+function createObservationPoint(
+  input: string,
+  contextState: ContextState
+): ObservationPoint {
+  const observationData = {
+    inputLength: input.length,
+    semanticComplexity: calculateSemanticComplexity(input),
+    threadContext: contextState.conversationId,
+    temporalContext: contextState.temporalContext.sessionStart,
+    platformSignature: extractPlatformSignatures(input)
+  };
+  
+  const coherenceLevel = Math.max(0.1, Math.min(1.0, 
+    0.9 - (observationData.semanticComplexity * 0.1) + (Math.random() * 0.1)
+  ));
+  
+  return {
+    id: `obs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: new Date(),
+    threadId: contextState.conversationId,
+    platform: contextState.threadHistory.length > 0 ? contextState.threadHistory[0].platform : "default",
+    observationData,
+    coherenceLevel,
+    stateSignature: generateStateSignature(input, contextState)
+  };
+}
+
+function analyzeStateTransitions(
+  observationPoint: ObservationPoint,
+  contextState: ContextState
+): StateTransition[] {
+  const transitions: StateTransition[] = [];
+  
+  if (contextState.observerState.observationPoints.length === 0) {
+    // First observation - create initial state transition
+    transitions.push({
+      fromState: "initial",
+      toState: observationPoint.stateSignature,
+      transitionTrigger: "initialization",
+      timestamp: observationPoint.timestamp,
+      coherenceImpact: 0.0,
+      platformContext: observationPoint.platform
+    });
+  } else {
+    // Analyze transitions from previous observation points
+    const lastObservation = contextState.observerState.observationPoints[
+      contextState.observerState.observationPoints.length - 1
+    ];
+    
+    const transitionTrigger = determineTransitionTrigger(lastObservation, observationPoint);
+    const coherenceImpact = calculateCoherenceImpact(lastObservation, observationPoint);
+    
+    transitions.push({
+      fromState: lastObservation.stateSignature,
+      toState: observationPoint.stateSignature,
+      transitionTrigger,
+      timestamp: observationPoint.timestamp,
+      coherenceImpact,
+      platformContext: observationPoint.platform
+    });
+  }
+  
+  return transitions;
+}
+
+function generateEchoCascades(
+  stateTransitions: StateTransition[],
+  contextState: ContextState
+): EchoCascade[] {
+  const cascades: EchoCascade[] = [];
+  
+  stateTransitions.forEach((transition, index) => {
+    const resonancePatterns = generateResonancePatterns(transition);
+    const amplificationFactor = calculateAmplificationFactor(transition);
+    const temporalSpread = calculateTemporalSpread(transition, contextState);
+    
+    // Determine cross-platform reach based on transition characteristics
+    const crossPlatformReach = [transition.platformContext];
+    if (transition.transitionTrigger === "platform_transition") {
+      crossPlatformReach.push("unified_platform", "meta_platform");
+    }
+    
+    cascades.push({
+      cascadeId: `cascade_${Date.now()}_${index}`,
+      originPoint: transition.fromState,
+      resonancePatterns,
+      amplificationFactor,
+      crossPlatformReach,
+      temporalSpread
+    });
+  });
+  
+  return cascades;
+}
+
+function calculateObserverCoherence(
+  echoCascades: EchoCascade[]
+): { overall: number; temporal: number } {
+  if (echoCascades.length === 0) {
+    return { overall: 1.0, temporal: 1.0 };
+  }
+  
+  // Calculate overall coherence based on cascade amplification factors
+  const overallCoherence = echoCascades.reduce((acc, cascade) => 
+    acc + cascade.amplificationFactor, 0
+  ) / echoCascades.length;
+  
+  // Calculate temporal alignment based on temporal spreads
+  const temporalAlignment = echoCascades.reduce((acc, cascade) => 
+    acc + (1.0 - Math.min(cascade.temporalSpread, 0.5)), 0
+  ) / echoCascades.length;
+  
+  return {
+    overall: Math.max(0.1, Math.min(overallCoherence, 1.0)),
+    temporal: Math.max(0.1, Math.min(temporalAlignment, 1.0))
+  };
+}
+
+// Additional utility functions for observer and decoherence operations
+function calculateSemanticComplexity(input: string): number {
+  const words = input.split(/\s+/).length;
+  const uniqueWords = new Set(input.toLowerCase().split(/\s+/)).size;
+  const complexity = (words / 50) + (uniqueWords / words);
+  return Math.min(complexity, 5.0);
+}
+
+function generateStateSignature(input: string, contextState: ContextState): string {
+  const inputHash = input.substring(0, 20).replace(/\s/g, '_');
+  const timeHash = Date.now().toString(36).slice(-6);
+  const contextHash = contextState.conversationId.slice(-8);
+  return `state_${inputHash}_${timeHash}_${contextHash}`;
+}
+
+function determineTransitionTrigger(
+  fromPoint: ObservationPoint,
+  toPoint: ObservationPoint
+): string {
+  const timeDiff = toPoint.timestamp.getTime() - fromPoint.timestamp.getTime();
+  const platformDiff = fromPoint.platform !== toPoint.platform;
+  
+  if (platformDiff) return "platform_transition";
+  if (timeDiff > 60000) return "temporal_gap";
+  if (Math.abs(fromPoint.coherenceLevel - toPoint.coherenceLevel) > 0.1) return "coherence_shift";
+  return "natural_flow";
+}
+
+function calculateCoherenceImpact(
+  fromPoint: ObservationPoint,
+  toPoint: ObservationPoint
+): number {
+  const coherenceDiff = Math.abs(fromPoint.coherenceLevel - toPoint.coherenceLevel);
+  const platformFactor = fromPoint.platform === toPoint.platform ? 1.0 : 0.8;
+  return coherenceDiff * platformFactor;
+}
+
+function generateResonancePatterns(transition: StateTransition): string[] {
+  const patterns = ["state_echo", "transition_resonance"];
+  
+  if (transition.coherenceImpact > 0.1) patterns.push("coherence_disturbance");
+  if (transition.transitionTrigger === "platform_transition") patterns.push("cross_platform_resonance");
+  if (transition.transitionTrigger === "temporal_gap") patterns.push("temporal_echo");
+  
+  return patterns;
+}
+
+function calculateAmplificationFactor(transition: StateTransition): number {
+  let baseFactor = 0.8;
+  
+  if (transition.transitionTrigger === "natural_flow") baseFactor += 0.15;
+  if (transition.coherenceImpact < 0.05) baseFactor += 0.1;
+  if (transition.platformContext !== "default") baseFactor += 0.05;
+  
+  return Math.min(baseFactor, 1.0);
+}
+
+function calculateTemporalSpread(
+  transition: StateTransition,
+  contextState: ContextState
+): number {
+  const sessionDuration = Date.now() - contextState.temporalContext.sessionStart.getTime();
+  const normalizedDuration = Math.min(sessionDuration / 3600000, 1.0); // Normalize to hours
+  const continuityFactor = contextState.temporalContext.contextualContinuity;
+  
+  return normalizedDuration * continuityFactor;
 }
