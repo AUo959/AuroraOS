@@ -29,6 +29,9 @@ import { continuityManagementTool } from "./tools/continuityManagementTool";
 import { perplexityResearchTool } from "./tools/perplexityResearchTool";
 import { triluxOperationsTool } from "./tools/triluxOperationsTool";
 import { ethicsProtocolTool } from "./tools/ethicsProtocolTool";
+import { qgiaForecastTool } from "./tools/qgiaForecastTool";
+import { knowledgeQueryTool } from "./tools/knowledgeQueryTool";
+import { constellationStatusTool } from "./tools/constellationStatusTool";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -91,6 +94,9 @@ export const mastra = new Mastra({
         perplexityResearchTool,
         triluxOperationsTool,
         ethicsProtocolTool,
+        qgiaForecastTool,
+        knowledgeQueryTool,
+        constellationStatusTool,
       },
     }),
   },
