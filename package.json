@@ -8,7 +8,9 @@
     "build": "mastra build",
     "check": "tsc",
     "check:format": "prettier --check '**/*.ts'",
-    "format": "prettier --write '**/*.ts'"
+    "format": "prettier --write '**/*.ts'",
+    "snapshot": "tsx scripts/snapshot.ts",
+    "glyphcard": "tsx scripts/glyphcard.ts"
   },
   "keywords": [],
   "type": "module",
