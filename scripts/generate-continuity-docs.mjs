@@ -20,7 +20,7 @@ const OPERATIONS = {
   'driftMonitoringTool': ['sync_anchors', 'thread_wake'],
   'triluxOperationsTool': ['t1_replay', 'replay_export'],
   'contextualAwarenessTool': ['observer_echo', 'decoherence_monitor'],
-  'symbolicCognitionTool': ['thread_governance', 'continuity_alignment']
+  'symbolicCognitionTool': ['thread_governance', 'continuity_alignment', 'reinforce_beacon_pulse']
 };
 
 function extractZodSchema(content, schemaName) {

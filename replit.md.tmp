@@ -253,6 +253,8 @@ inputSchema: z.object({
       "beacon_pulse",
       "recovery_expand",
       "harmonic_retune",
+      // Vector Chain Protocol v230b enhancements
+      "reinforce_beacon_pulse",
       // Thread Governance & Continuity Alignment enhancements
       "thread_governance",
       "continuity_alignment"
@@ -269,7 +271,7 @@ inputSchema: z.object({
   }
 ```
 
-**Output Schema** (Line 165):
+**Output Schema** (Line 167):
 ```typescript
 outputSchema: z.object({
     symbolicOutput: z.string(),
@@ -288,7 +290,7 @@ outputSchema: z.object({
   }
 ```
 
-**Continuity Steward Operations**: thread_governance, continuity_alignment
+**Continuity Steward Operations**: thread_governance, continuity_alignment, reinforce_beacon_pulse
 
 ---
 
