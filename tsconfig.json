@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -8,9 +9,13 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "tests/**/*",
+    "scripts/**/*"
   ]
 }
