@@ -67,10 +67,9 @@ function main() {
     ],
     { cwd: root, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
   );
-  if (scan.error || (scan.status !== 0 && scan.status !== 1)) {
-    throw new Error("Git could not index symbolic references", {
-      cause: scan.error,
-    });
+  if (scan.error) throw scan.error;
+  if (scan.status !== 0 && scan.status !== 1) {
+    throw new Error("Git could not index symbolic references");
   }
   const manifest = defaultManifest({
     srb_tags: [SRB.CORE, SRB.RELIQUARY],
