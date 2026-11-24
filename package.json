@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsx --test tests/*.test.ts",
+    "snap:seal": "tsx scripts/snapshot.ts seal",
+    "snap:verify": "tsx scripts/snapshot.ts verify",
+    "reliquary:index": "tsx scripts/reliquary-index.ts",
+    "glyphcard": "tsx scripts/snapshot.ts glyphcard",
     "dev": "mastra dev",
     "build": "mastra build",
     "check": "tsc",
