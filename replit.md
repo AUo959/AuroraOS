@@ -251,6 +251,7 @@ inputSchema: z.object({
       "field_stabilize",
       "breath_harmonize", 
       "beacon_pulse",
+      "reinforce_beacon_pulse",
       "recovery_expand",
       "harmonic_retune",
       // Thread Governance & Continuity Alignment enhancements
@@ -288,7 +289,11 @@ outputSchema: z.object({
   }
 ```
 
-**Continuity Steward Operations**: thread_governance, continuity_alignment
+**Continuity Steward Operations**: thread_governance, continuity_alignment, reinforce_beacon_pulse
+
+`reinforce_beacon_pulse` applies the `reinforce_beacon_pulse_stability`
+vector. Its `beaconReinforcement` result records the operation's pattern,
+before and after stability, and the affected field anchors.
 
 ---
 

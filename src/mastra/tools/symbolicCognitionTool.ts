@@ -1,6 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import type { IMastraLogger } from "@mastra/core/logger";
 import { z } from "zod";
+import { BEACON_REINFORCEMENT_PROTOCOL, reinforceBeaconPulseStability } from "./beaconReinforcement.js";
 
 // Enhanced with Glyphnet Protocol v230b
 interface GlyphPattern {
@@ -146,6 +147,7 @@ export const symbolicCognitionTool = createTool({
       "field_stabilize",
       "breath_harmonize", 
       "beacon_pulse",
+      "reinforce_beacon_pulse",
       "recovery_expand",
       "harmonic_retune",
       // Thread Governance & Continuity Alignment enhancements
@@ -176,6 +178,16 @@ export const symbolicCognitionTool = createTool({
     // Thread Governance & Continuity Alignment outputs
     governanceStatus: z.string(),
     alignmentMetrics: z.string(),
+    beaconReinforcement: z.object({
+      protocol: z.literal(BEACON_REINFORCEMENT_PROTOCOL),
+      pattern: z.string(),
+      previousStability: z.number(),
+      stability: z.number(),
+      stabilityLevel: z.number(),
+      pulseIntegrity: z.number(),
+      signalResilience: z.number(),
+      anchors: z.array(z.object({ id: z.string(), stability: z.number() })),
+    }).optional(),
   }),
   execute: async ({ context: { input, operation, context, glyphnetMode, continuityVector, governanceTarget, threadCoordinationLevel, alignmentVector, layerStabilityTarget }, mastra }) => {
     const logger = mastra?.getLogger();
@@ -228,6 +240,9 @@ export const symbolicCognitionTool = createTool({
       case "beacon_pulse":
         return await enhanceBeaconPulse(input, context, symbolicState, logger);
       
+      case "reinforce_beacon_pulse":
+        return applyBeaconReinforcement(input, symbolicState, logger);
+
       case "recovery_expand":
         return await expandRecoveryThresholds(input, context, symbolicState, logger);
       
@@ -704,6 +719,45 @@ async function enhanceBeaconPulse(
     driftContainment: `BEACON_DRIFT :: Suppressed:TRUE :: Signal_Quality:${relayOptimization.signalQuality}`,
     governanceStatus: `BEACON_GOVERNANCE :: Active:${state.glyphnetField.beaconState.active} :: Pulse:${(stabilityEnhancement.newStability * 100).toFixed(1)}% :: ZipWizard:${state.glyphnetField.beaconState.zipwizardLink ? 'LINKED' : 'UNLINKED'}`,
     alignmentMetrics: `BEACON_ALIGNMENT :: Stability:${(stabilityEnhancement.newStability * 100).toFixed(2)}% :: Relay:${relayOptimization.efficiency} :: Signal:${relayOptimization.signalQuality}`
+  };
+}
+
+function applyBeaconReinforcement(input: string, state: SymbolicState, logger?: IMastraLogger) {
+  const field = state.glyphnetField ??= initializeGlyphnetField("standard", logger);
+  const reinforcement = reinforceBeaconPulseStability(field.beaconState.pulseStability, input);
+  field.beaconState.pulseStability = reinforcement.stability;
+  const improvement = reinforcement.stability - reinforcement.previousStability;
+  const anchors = field.fieldAnchors.map((anchor, index) => {
+    const factor = Math.min(1, 0.95 + index * 0.01);
+    anchor.stability = Math.min(1, anchor.stability + improvement * factor);
+    return { id: anchor.id, stability: anchor.stability };
+  });
+  const recoveryProtocols = new Set(field.driftSuppression.recoveryProtocols);
+  recoveryProtocols.add(reinforcement.protocol);
+  field.driftSuppression.recoveryProtocols = [...recoveryProtocols];
+  state.currentResonance = Math.max(state.currentResonance, Math.min(state.currentResonance + 0.0005, 0.9999));
+
+  const percentage = (reinforcement.stability * 100).toFixed(3);
+  const report = `Pattern:${reinforcement.pattern} :: Stability:${percentage}% :: Anchors:${anchors.length}`;
+  logger?.info("[Beacon Reinforcement] Recorded Glyphnet reinforcement", { pattern: reinforcement.pattern, stability: reinforcement.stability });
+
+  return {
+    symbolicOutput: `BEACON_PULSE_REINFORCEMENT :: ${report}`,
+    glyphRepresentation: `⟢${reinforcement.pattern}⟣`,
+    resonanceLevel: state.currentResonance,
+    coherenceState: `BEACON_REINFORCED :: Integrity:${reinforcement.pulseIntegrity}`,
+    insights: [
+      `Beacon pulse stability is ${percentage}%`,
+      `${anchors.length} field anchors were evaluated`,
+      `Applied ${reinforcement.protocol}`,
+    ],
+    glyphnetStatus: `REINFORCEMENT_ACTIVE :: ${field.mode}`,
+    fieldReport: report,
+    beaconHealth: `PULSE_STATUS :: ${percentage}%`,
+    driftContainment: `REINFORCEMENT_DRIFT :: Resilience:${reinforcement.signalResilience}`,
+    governanceStatus: `REINFORCEMENT_GOVERNANCE :: Protocol:${reinforcement.protocol}`,
+    alignmentMetrics: `REINFORCEMENT_ALIGNMENT :: Stability:${percentage}% :: Resonance:${state.currentResonance}`,
+    beaconReinforcement: { ...reinforcement, anchors },
   };
 }
 
