@@ -22,17 +22,19 @@ export {
 
 import { SRB } from "./symbolic/anchors.js";
 
-export function withAnchorLog<Args extends unknown[], Result>(
-  fn: (...args: Args) => Result,
+export function withAnchorLog<F extends CallableFunction>(
+  fn: F,
   anchor: string,
   srb_tags: string[] = [SRB.CORE],
-): (...args: Args) => Result {
-  return (...args) => {
-    console.debug("[ANCHOR]", {
-      anchor,
-      srb_tags,
-      argument_count: args.length,
-    });
-    return fn(...args);
-  };
+): F {
+  return new Proxy(fn, {
+    apply(target, receiver, args) {
+      console.debug("[ANCHOR]", {
+        anchor,
+        srb_tags,
+        argument_count: args.length,
+      });
+      return Reflect.apply(target, receiver, args);
+    },
+  });
 }

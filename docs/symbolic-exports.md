@@ -14,7 +14,7 @@ npm run --silent reliquary:index > index.json
 ```
 
 The snapshot and glyphcard commands also read standard input. The reliquary
-command indexes locations in tracked source and Markdown files. Its JSON
+command indexes locations in source and Markdown files in the Git index. Its JSON
 contains repository-relative paths and line numbers.
 
 ```ts

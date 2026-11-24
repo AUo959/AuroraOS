@@ -59,7 +59,7 @@ test("serialization rejects unsupported values and permits repeated JSON referen
   const shared = { value: 1 };
   const circular: Record<string, unknown> = {};
   circular.self = circular;
-  assert.throws(() => stableStringify(circular), /circular/);
+  assert.throws(() => stableStringify(circular), /circular/i);
   assert.throws(() => stableStringify({ value: Infinity }), /JSON value/);
   assert.equal(stableStringify([shared, shared]), '[{"value":1},{"value":1}]');
 });

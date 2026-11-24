@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
-import { lstatSync, readFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createSeal, defaultManifest, SRB } from "../src/index.js";
 
 type Reference = { file: string; line: number };
+
+const indexPaths = ["*.ts", "*.js", "*.md"];
 
 function addReference(
   index: Map<string, Reference[]>,
@@ -15,44 +15,71 @@ function addReference(
   index.set(key, references);
 }
 
+function collectReferences(output: string) {
+  const anchors = new Map<string, Reference[]>();
+  const tags = new Map<string, Reference[]>();
+  const fields = output.split("\0").values();
+  for (let file = fields.next().value; file; ) {
+    const line = Number(fields.next().value);
+    const match = fields.next().value ?? "";
+    const end = match.indexOf("\n");
+    if (end < 0 || !Number.isInteger(line)) {
+      throw new Error("Unexpected Git reference output");
+    }
+    const token = match.slice(0, end);
+    addReference(token.startsWith("T1_") ? anchors : tags, token, {
+      file,
+      line,
+    });
+    file = match.slice(end + 1);
+  }
+  return {
+    anchors: Object.fromEntries(anchors),
+    srb_tags: Object.fromEntries(tags),
+  };
+}
+
 function main() {
   const root = execFileSync("git", ["rev-parse", "--show-toplevel"], {
     encoding: "utf8",
   }).trimEnd();
-  const paths = execFileSync("git", ["ls-files", "-z"], {
+  const paths = execFileSync("git", ["ls-files", "-z", "--", ...indexPaths], {
     cwd: root,
     encoding: "utf8",
-  }).split("\0");
-  const extensions = new Set([".ts", ".js", ".md"]);
-  const anchors = new Map<string, Reference[]>();
-  const tags = new Map<string, Reference[]>();
-  let scannedFiles = 0;
-
-  for (const file of paths) {
-    if (!extensions.has(extname(file))) continue;
-    const path = join(root, file);
-    if (!lstatSync(path, { throwIfNoEntry: false })?.isFile()) continue;
-    scannedFiles += 1;
-    const lines = readFileSync(path, "utf8").split(/\r?\n/);
-    for (const [index, line] of lines.entries()) {
-      for (const token of new Set(line.match(/\b(?:T1|SRB)_[A-Z0-9_]+\b/g))) {
-        addReference(token.startsWith("T1_") ? anchors : tags, token, {
-          file,
-          line: index + 1,
-        });
-      }
-    }
+  })
+    .split("\0")
+    .filter(Boolean);
+  const scan = spawnSync(
+    "git",
+    [
+      "grep",
+      "--cached",
+      "-I",
+      "-n",
+      "-o",
+      "-E",
+      "-w",
+      "-z",
+      "-e",
+      "(T1|SRB)_[A-Z0-9_]+",
+      "--",
+      ...indexPaths,
+    ],
+    { cwd: root, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+  );
+  if (scan.error || (scan.status !== 0 && scan.status !== 1)) {
+    throw new Error("Git could not index symbolic references", {
+      cause: scan.error,
+    });
   }
-
   const manifest = defaultManifest({
     srb_tags: [SRB.CORE, SRB.RELIQUARY],
     dlp: { classification: "DLP_L2_LOCKED", context_tag: "RELIQUARY_INDEX" },
   });
   const sealed = createSeal(
     {
-      anchors: Object.fromEntries(anchors),
-      srb_tags: Object.fromEntries(tags),
-      scanned_files: scannedFiles,
+      ...collectReferences(scan.stdout),
+      scanned_files: paths.length,
     },
     manifest,
   );

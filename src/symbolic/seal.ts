@@ -21,19 +21,22 @@ export function stableStringify(value: unknown): string {
   const ancestors = new Set<object>();
 
   function serialize(item: unknown): string {
-    if (
-      item === null ||
-      typeof item === "string" ||
-      typeof item === "boolean"
-    ) {
-      return JSON.stringify(item);
+    if (item === null) return "null";
+    switch (typeof item) {
+      case "string":
+      case "boolean":
+        return JSON.stringify(item);
+      case "number":
+        if (Number.isFinite(item)) return JSON.stringify(item);
+        break;
+      case "object":
+        return serializeContainer(item);
     }
-    if (typeof item === "number" && Number.isFinite(item)) {
-      return JSON.stringify(item);
-    }
-    if (typeof item !== "object" || ancestors.has(item)) {
-      throw new TypeError("Expected a JSON value without circular references");
-    }
+    throw new TypeError("Expected a finite JSON value");
+  }
+
+  function serializeContainer(item: object): string {
+    if (ancestors.has(item)) throw new TypeError("Circular JSON reference");
 
     ancestors.add(item);
     try {
@@ -45,9 +48,9 @@ export function stableStringify(value: unknown): string {
         throw new TypeError("Expected a plain JSON object");
       }
       const object = item as Record<string, unknown>;
-      const entries = Object.keys(object)
-        .sort()
-        .map((key) => JSON.stringify(key) + ":" + serialize(object[key]));
+      const entries = Object.entries(object)
+        .sort(([left], [right]) => (left < right ? -1 : Number(left > right)))
+        .map(([key, value]) => JSON.stringify(key) + ":" + serialize(value));
       return "{" + entries.join(",") + "}";
     } finally {
       ancestors.delete(item);
@@ -78,7 +81,12 @@ export function createSeal<T>(
 
 export function verifySeal(input: unknown): input is SealedArtifact {
   try {
-    const { artifact, manifest, seal } = input as SealedArtifact;
+    const { artifact, manifest, seal } = input as Omit<
+      SealedArtifact,
+      "seal"
+    > & {
+      seal: Record<string, unknown>;
+    };
     if (seal.algo !== "SHA256" || seal.created_at !== manifest.export_time) {
       return false;
     }

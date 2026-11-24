@@ -7,7 +7,7 @@ import {
   verifySeal,
 } from "../src/index.js";
 
-function main() {
+function commandOptions() {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
     options: {
@@ -20,7 +20,7 @@ function main() {
   const [command] = positionals;
   if (values.help) {
     console.log(
-      "Usage: snapshot <seal|verify|glyphcard> [--file <path>] [--anchor <id>] [--no-redact]",
+      "Usage: snapshot seal|verify|glyphcard [--file PATH] [--anchor ID] [--no-redact]",
     );
     return;
   }
@@ -31,6 +31,15 @@ function main() {
     throw new Error("Specify seal, verify, or glyphcard");
   }
 
+  return { command, values };
+}
+
+function main() {
+  const options = commandOptions();
+  if (!options) return;
+  const { command, values } = options;
+  // This local CLI reads the input path the caller selects, or standard input.
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const input: unknown = JSON.parse(readFileSync(values.file ?? 0, "utf8"));
   if (command === "seal") {
     const manifest = defaultManifest();
